@@ -2,8 +2,12 @@
 #ifndef TSP_GRAPH_H
 #define TSP_GRAPH_H  
 
-#include "conf.hpp"
-
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <random>
 
 class TSP_Graph
 {

@@ -50,38 +50,24 @@ int main(int argc, char const *argv[])
 
   
 
-  { // Parallel EXECUTION
-    auto start = std::chrono::high_resolution_clock::now();
+  // Parallel EXECUTION
+  auto start = std::chrono::high_resolution_clock::now();
 
-                          
-    while(epoch < max_epochs) 
-    { 
-      // std::cout<<"epoch: "<<epoch<< " | curr min:" << test.get_current_optimum().first << "\n";
-      test.next_generation();
-      ++epoch;
-    }
-
-    auto elapsed = std::chrono::high_resolution_clock::now() - start;
-    auto usec    = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
-    std::cout<<"\nParallel (c++ threads) execution on a completely connected random graph with " << chromo_size << " nodes took (usec): "<< usec << std::endl;
-  
-    //std::cout << "Speedup is " << ((float) tseq)/((float) msec) << " (should be " << nw << ")" << std::endl; 
-
+  while(epoch < max_epochs) 
+  {
+    // std::cout<<"epoch: "<<epoch<< " | curr min:" << test.get_current_optimum().first << "\n";
+    test.next_generation();
+    ++epoch;
   }
 
-  auto result = test.get_current_optimum().first;
-  auto v      = test.get_current_optimum().second;
-
-  std::cout<<"min cost ham tour: " << result <<"\n";
-    
-  //std::cout<<"opt tour:\n[";
-  //for( auto e : v) std::cout<<e << ",";
-  //std::cout<<"]\n";
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  auto usec    = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  //std::cout<<"\nSequential execution on a completely connected random graph with " << chromo_size << " nodes took (usec): "<< usec << std::endl;
   
-  // no duplicates tests
-  // std::sort(v.begin(), v.end());
-  // for( auto e : v) std::cout<<e << ",";
-  // std::cout<<"\n";
+
+  auto result = test.get_current_optimum().first;
+
+  std::cout << nw << " " << max_epochs << " " << pop_size << " " << chromo_size << " " << cross_prob << " " << mutat_prob << " " << " >> t_par=" << usec << " opt=" << result << "\n";
 
   return 0;
 }

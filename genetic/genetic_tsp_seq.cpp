@@ -12,8 +12,8 @@ int main(int argc, char const *argv[])
   size_t max_epochs  = atoi(argv[1]);
   size_t pop_size    = atoi(argv[2]);
   size_t chromo_size = atoi(argv[3]);
-  float cross_prob   = atof(argv[4]);
-  float mutat_prob   = atof(argv[5]);
+  float  cross_prob  = atof(argv[4]);
+  float  mutat_prob  = atof(argv[5]);
 
   size_t epoch = 0;
 
@@ -47,34 +47,24 @@ int main(int argc, char const *argv[])
                              , fit_funct
                              );
 
-  { // SEQUENTIAL EXECUTION
-    auto start = std::chrono::high_resolution_clock::now();
+  // SEQUENTIAL EXECUTION
+  auto start = std::chrono::high_resolution_clock::now();
 
-    while(epoch < max_epochs) 
-    {
-      // std::cout<<"epoch: "<<epoch<< " | curr min:" << test.get_current_optimum().first << "\n";
-      test.next_generation();
-      ++epoch;
-    }
-
-    auto elapsed = std::chrono::high_resolution_clock::now() - start;
-    auto usec    = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
-    std::cout<<"\nSequential execution on a completely connected random graph with " << chromo_size << " nodes took (usec): "<< usec << std::endl;
+  while(epoch < max_epochs) 
+  {
+    // std::cout<<"epoch: "<<epoch<< " | curr min:" << test.get_current_optimum().first << "\n";
+    test.next_generation();
+    ++epoch;
   }
 
-  auto result = test.get_current_optimum().first;
-  auto v      = test.get_current_optimum().second;
-
-  std::cout<<"min cost ham tour: " << result <<"\n";
-    
-  //std::cout<<"opt tour:\n[";
-  //for( auto e : v) std::cout<< e << ",";
-  //std::cout<<"]\n";
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  auto usec    = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+  //std::cout<<"\nSequential execution on a completely connected random graph with " << chromo_size << " nodes took (usec): "<< usec << std::endl;
   
-  // no duplicates tests
-  // std::sort(v.begin(), v.end());
-  // for( auto e : v) std::cout<<e << ",";
-  // std::cout<<"\n";
+
+  auto result = test.get_current_optimum().first;
+
+  std::cout << max_epochs << " " << pop_size << " " << chromo_size << " " << cross_prob << " " << mutat_prob << " " << " >> t_seq=" << usec << " opt=" << result << "\n";
 
   return 0;
 }

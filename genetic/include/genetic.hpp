@@ -1,8 +1,13 @@
 #ifndef GENETIC_H
 #define GENETIC_H
 
-#include "conf.hpp"
-
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <random>
+#include <chrono> 
 
 // not properly but something like an abstract class
 template< typename Population_t       // type of the population. Hopefully an stl container of Chomosomes_t
