@@ -1,3 +1,3 @@
-# spm19
+# Parallel and Distributed Systems: paradigms and models (2019/2020)
 
-Repository for the course Parallel and Distributed Systems: Paradigms and Models (2018-2019) @Universita' di Pisa
+Final project: a genetic algorithm for TSP. Sequential, c++ threads, FastFlow implementations.
