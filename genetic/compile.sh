@@ -22,7 +22,7 @@ echo "Parallel version (c++ threads) compilation took:"
 time g++ -O3 -finline-functions -std=c++17 -pthread -o ./build/par ./src/genetic_tsp_par.cpp
 
 #echo "Parallel version (FastFlow) compilation took:"
-#time g++ -O3 -finline-functions -Wall -Wextra -pedantic -std=c++17 -pthread -I$FF_ROOT -o ./build/ff ./src/genetic_tsp_ff.cpp
+#time g++ -O3 -finline-functions -std=c++17 -pthread -I$FF_ROOT -o ./build/ff ./src/genetic_tsp_ff.cpp
 
 code=$?
 
@@ -31,7 +31,13 @@ echo "Generated binaries! (return code ${code})"
 echo "Executable in ./build"
 
 echo ""
-echo "Use command ./scripts/run.sh to run experiments using some default configurations."
+echo "Setting up the required directory structure"
+
+rm -r results
+mkdir  results
+echo "Created directory results/ to store experiments' results"
+
 
 echo ""
-#./bin/benchmark --help
+echo "Use the provided jupyter notebook to run the experiments interactively."
+echo "Or use the script run.sh to run some default experiments."

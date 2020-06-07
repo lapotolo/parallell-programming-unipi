@@ -59,12 +59,23 @@ int main(int argc, char const *argv[])
 
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
   auto usec    = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
-  //std::cout<<"\nSequential execution on a completely connected random graph with " << chromo_size << " nodes took (usec): "<< usec << std::endl;
-  
 
   auto result = test.get_current_optimum().first;
 
-  std::cout << max_epochs << " " << pop_size << " " << chromo_size << " " << cross_prob << " " << mutat_prob << " " << " >>\nt_seq=" << usec << " opt=" << result << "\n";
+
+  std::ofstream out_file;
+  out_file.open( "results/"
+               + (std::to_string(max_epochs))
+               + "-max_epochs-"
+               + (std::to_string(pop_size))
+               + "-chromo-"
+               + (std::to_string(chromo_size))
+               + "-cities"
+               + "_seq.data"
+               , std::ios::app);
+  //num_threads tService fitness_value solution
+  out_file << usec << "\n";
+  out_file.close();
 
   return 0;
 }
