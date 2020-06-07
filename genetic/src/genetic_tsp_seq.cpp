@@ -1,5 +1,5 @@
-#include "include/genetic_tsp_seq.hpp"
-#include "include/tsp_graph.hpp"
+#include "../include/genetic_tsp_seq.hpp"
+#include "../include/tsp_graph.hpp"
 
 int main(int argc, char const *argv[])
 {
@@ -64,7 +64,7 @@ int main(int argc, char const *argv[])
 
   auto result = test.get_current_optimum().first;
 
-  std::cout << max_epochs << " " << pop_size << " " << chromo_size << " " << cross_prob << " " << mutat_prob << " " << " >> t_seq=" << usec << " opt=" << result << "\n";
+  std::cout << max_epochs << " " << pop_size << " " << chromo_size << " " << cross_prob << " " << mutat_prob << " " << " >>\nt_seq=" << usec << " opt=" << result << "\n";
 
   return 0;
 }

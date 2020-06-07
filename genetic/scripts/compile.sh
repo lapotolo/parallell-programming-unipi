@@ -16,13 +16,13 @@ export FF_ROOT=/home/lapo/opt/fastflow
 
 
 echo "Sequential version compilation took:"
-time g++ -O3 -finline-functions -std=c++17 -o ./build/seq genetic_tsp_seq.cpp
+time g++ -O3 -finline-functions -std=c++17 -o ./build/seq ./src/genetic_tsp_seq.cpp
 
 echo "Parallel version (c++ threads) compilation took:"
-time g++ -O3 -finline-functions -std=c++17 -pthread -o ./build/par genetic_tsp_par.cpp
+time g++ -O3 -finline-functions -std=c++17 -pthread -o ./build/par ./src/genetic_tsp_par.cpp
 
 #echo "Parallel version (FastFlow) compilation took:"
-#time g++ -O3 -finline-functions -Wall -Wextra -pedantic -std=c++17 -pthread -I$FF_ROOT -o ./build/ff genetic_tsp_ff.cpp
+#time g++ -O3 -finline-functions -Wall -Wextra -pedantic -std=c++17 -pthread -I$FF_ROOT -o ./build/ff ./src/genetic_tsp_ff.cpp
 
 code=$?
 
@@ -31,7 +31,7 @@ echo "Generated binaries! (return code ${code})"
 echo "Executable in ./build"
 
 echo ""
-echo "Use command ./scripts/run.sh to run predefined experiments."
+echo "Use command ./scripts/run.sh to run experiments using some default configurations."
 
 echo ""
 #./bin/benchmark --help

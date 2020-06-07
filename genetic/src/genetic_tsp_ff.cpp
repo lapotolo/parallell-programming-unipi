@@ -1,5 +1,5 @@
-#include "include/genetic_tsp_ff.hpp"
-#include "include/tsp_graph.hpp"
+#include "../include/genetic_tsp_ff.hpp"
+#include "../include/tsp_graph.hpp"
 
 int main(int argc, char const *argv[])
 {
