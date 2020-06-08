@@ -58,7 +58,7 @@ private:
   //                     ~~~----~~~
   void crossover(size_t const& chunk_s, size_t const& chunk_e) // recall, index chunk_e is not in the computed interval
   {
-    size_t i, j, left, right;
+    size_t i, j, left, right, k;
 
     std::vector<int> tmp_chromo_1(chromosome_size);
     std::vector<int> tmp_chromo_2(chromosome_size);
@@ -71,10 +71,21 @@ private:
     std::uniform_int_distribution<> left_idx_distr(1, ((chromosome_size-1)>>1)-1); // generate a random index between [1, chromosome.size/2] ie. cannot generate the first index
     std::uniform_int_distribution<> right_idx_distr(((chromosome_size-1)>>1) + 1, chromosome_size-2); // generate a random index between [chromosome.size/2, chromosome.size-2] ie. cannot generate the last index
   
+
+    std::vector<int> counter_1(chromosome_size, 0);
+    std::vector<int> counter_2(chromosome_size, 0);
+    std::vector<int> zeroes_1;
+    std::vector<int> zeroes_2;
     for(i=chunk_s; i < chunk_e; i+=2)
     {
       if(biased_coin(gen))
       {
+        // std::cout<<"************************************\n";
+        // for(auto e : population[i]) std::cout<<e<<" ";
+        // std::cout<<"\n";
+        // for(auto e : population[i+1]) std::cout<<e<<" ";
+        // std::cout<<"\n";
+        // std::cout<<"************************************\n";
         tmp_chromo_1 = population[i];
         tmp_chromo_2 = population[i+1];
         left  = left_idx_distr(gen);
@@ -85,6 +96,50 @@ private:
 
         // viceversa, copy central part of first parent into the central part of the second parent
         for(j = left; j <= right; ++j) population[i+1][j] = tmp_chromo_1[j];
+        
+        //std::cout<<"after copy:\n";
+        //for(auto e : population[i]) std::cout<<e<<" ";
+        //std::cout<<"\n";
+        //for(auto e : population[i+1]) std::cout<<e<<" ";
+        //std::cout<<"\n";
+        //std::cout<<"now sanitize:\n";
+
+
+
+        // sanitize the two strings
+        for(j = 0; j < chromosome_size; ++j)
+        {
+          counter_1[population[i][j]]++;
+          counter_2[population[i+1][j]]++;
+        }
+
+        for(j = 0; j < chromosome_size; ++j)
+        {
+          if(counter_1[j] == 0 ) zeroes_1.push_back(j);
+          if(counter_2[j] == 0 ) zeroes_2.push_back(j);
+        }
+
+
+        for(j = 0; j < chromosome_size; ++j)
+        {
+          if(counter_1[j+1] == 2)
+          {
+            population[i][j] = zeroes_1.back();
+            zeroes_1.pop_back();
+            counter_1[j+1]--;
+          }
+          if(counter_2[j+1] == 2)
+          {
+            population[i+1][j] = zeroes_2.back();
+            zeroes_2.pop_back();
+            counter_2[j+1]--;
+          }
+        }
+        //for(auto e : population[i]) std::cout<<e<<" ";
+        //std::cout<<"\n";
+        //for(auto e : population[i+1]) std::cout<<e<<" ";
+        //std::cout<<"\n";
+        //std::cout<<"************************************\n\n";
       }
     }
   }

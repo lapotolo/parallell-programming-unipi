@@ -1,16 +1,7 @@
 #ifndef GENETIC_H
 #define GENETIC_H
 
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <functional>
-#include <utility>
-#include <random>
-
-#include <chrono> 
-
-#include <fstream>
+#include "conf.hpp"
 
 
 // not properly but something like an abstract class
