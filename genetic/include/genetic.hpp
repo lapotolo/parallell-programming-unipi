@@ -49,18 +49,18 @@ protected:
   
   // init the population
   void init_population();
-
-  // apply the crossover reproduction with a given probability
-  void crossover(size_t const& chunk_s, size_t const& chunk_e);
-
-  // apply some mutation to the chromosomes with a given probability
-  void mutate(size_t const& chunk_s, size_t const& chunk_e);
   
   // evaluate the population and updates the collection chromosomes fitness
   // returns the index of the best chromosome
   void evaluate_population(size_t const& chunk_s, size_t const& chunk_e);
 
   void selection(size_t const& chunk_s, size_t const& chunk_e);
+
+  // apply the crossover reproduction with a given probability
+  void crossover(size_t const& chunk_s, size_t const& chunk_e);
+
+  // apply some mutation to the chromosomes with a given probability
+  void mutate(size_t const& chunk_s, size_t const& chunk_e);
 };
 
 #endif // GENETIC_H

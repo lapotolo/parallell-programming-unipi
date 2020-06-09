@@ -48,14 +48,16 @@ int main(int argc, char const *argv[])
                            , fit_funct
                            );
 
-  
 
   // Parallel EXECUTION
   auto start = std::chrono::high_resolution_clock::now();
 
   while(epoch < max_epochs) 
   {
-    // std::cout<<"epoch: "<<epoch<< " | curr min:" << test.get_current_optimum().first << "\n";
+    //std::cout<<"epoch: "<<epoch<< " | curr min:" << test.get_current_optimum().first << "\n";
+    //std::cout<<"opt tour= [ ";
+    //for(auto e : test.get_current_optimum().second)std::cout<< e << " ";
+    //std::cout<<"]\n\n";
     test.next_generation();
     ++epoch;
   }
@@ -81,6 +83,11 @@ int main(int argc, char const *argv[])
   out_file << usec << "\n";
   out_file.close();
 
+  std::cout<<"\n***\nglob opt = " << test.get_current_optimum().first << "\n";
+  std::cout<<"glob opt tour= [ ";
+  for(auto e : test.get_current_optimum().second) std::cout<< e << " ";
+  std::cout<<"]\n";
+  std::cout << "time= " << usec << "\n";
   return 0;
 
 }

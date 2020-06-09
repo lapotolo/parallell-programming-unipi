@@ -7,6 +7,7 @@
 #include <functional>
 #include <utility>
 #include <random>
+#include <deque>
 
 #include <chrono> 
 #include <fstream>
