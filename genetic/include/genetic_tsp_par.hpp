@@ -12,6 +12,7 @@ class Genetic_TSP_Parallel : Genetic_Algorithm<std::vector<std::vector<int>>, st
 public:
   // constructor. First generation is composed of random (feasible) chromosomes
   Genetic_TSP_Parallel( size_t nw
+                      , size_t max_its  
                       , size_t pop_s // chromosome number
                       , size_t chromo_s
                       , float p1
@@ -19,13 +20,14 @@ public:
                       , std::function<int32_t(std::vector<int> const&)> f
                       )
                       : num_workers(nw)
-                      , Genetic_Algorithm(pop_s, chromo_s, p1, p2 ,f)
+                      , chunks_size(pop_s/nw)
+                      , curr_glob_opt_idx(0)
+                      , Genetic_Algorithm(max_its, pop_s, chromo_s, p1, p2 ,f)
 
   {
-    curr_glob_opt_idx = 0;
-    chunks_size = pop_s/nw;
     init_population();
-    chromosomes_fitness.resize(pop_s);
+    chromosomes_fitness.reserve(pop_s);
+    evaluate_population(0, pop_s);
     current_optimum = std::make_pair( f(population[curr_glob_opt_idx])
                                     , population[curr_glob_opt_idx]);
     init_ranges();  // setup ranges for thread tasks' splitting
@@ -37,25 +39,50 @@ public:
 
   }
 
+  void run()
+  {
+    size_t curr_epoch = 0;
+    while(++curr_epoch < max_epochs)
+      next_generation();
+  }
+
+  std::pair<int32_t, std::vector<int>> get_current_optimum() { return current_optimum; }
+
+private:
+  std::vector<std::thread> workers;
+  
+  size_t num_workers;
+  size_t chunks_size; // number of chromosome that each worker have to deal with
+  size_t curr_glob_opt_idx; // index of the global optimum in the current population
+
+
+  std::vector<std::pair<size_t, size_t>> ranges;
+
+  
+  void init_population()
+  {  
+    size_t i;  
+    population.reserve(population_size);
+    for(i = 0; i < population_size; ++i)
+    {
+      std::vector<int> chromosome(chromosome_size);
+      std::iota(chromosome.begin(), chromosome.end(), 0);
+      std::shuffle(chromosome.begin(), chromosome.end(), std::mt19937{std::random_device{}()});
+      population.emplace_back(chromosome);
+    }
+  }
+
+  void init_ranges()
+  {
+    // setup ranges to be given to the workers to work without data races
+    for(size_t i=0; i<num_workers; ++i)
+      ranges.push_back(std::make_pair( i*chunks_size
+                                     ,(i != (num_workers-1) ? (i+1)*chunks_size : population_size)));
+  }
+
   void next_generation()
   {
     size_t i;
-
-    // PARALLEL FORK/JOIN MODEL FOR CHROMOSOMES FITNESS EVALUATION
-    for(i = 0; i < num_workers; ++i)
-      workers.push_back(std::move(std::thread( &Genetic_TSP_Parallel::evaluate_population
-                                             , this
-                                             , ranges[i].first
-                                             , ranges[i].second)));  // FORK num_workers threads
-    for(auto & thr : workers)
-      thr.join(); // JOIN
-    workers.clear();
-    // **************************************************************************************
-
-    // SELECTION PHASE
-    selection(0, population_size);
-    // **************************************************************************************
-
     // PARALLEL FORK/JOIN MODEL TO APPLY CROSSOVERS TO CHROMOSOMES
     for(i = 0; i < num_workers; ++i)
       workers.push_back(std::move(std::thread( &Genetic_TSP_Parallel::crossover
@@ -77,47 +104,28 @@ public:
       thr.join(); // JOIN
     workers.clear();
     // **************************************************************************************
-  }
+    // PARALLEL FORK/JOIN MODEL FOR CHROMOSOMES FITNESS EVALUATION
+    for(i = 0; i < num_workers; ++i)
+      workers.push_back(std::move(std::thread( &Genetic_TSP_Parallel::evaluate_population
+                                             , this
+                                             , ranges[i].first
+                                             , ranges[i].second)));  // FORK num_workers threads
+    for(auto & thr : workers)
+      thr.join(); // JOIN
+    workers.clear();
+    // **************************************************************************************
 
-  std::pair<int32_t, std::vector<int>> get_current_optimum() { return current_optimum; }
-
-private:
-  size_t curr_glob_opt_idx; // index of the global optimum in the current population
-  size_t num_workers;
-  std::vector<std::thread> workers;
-
-  size_t chunks_size; // number of chromosome that each worker have to deal with
-
-  std::vector<std::pair<size_t, size_t>> ranges;
-
-  
-  void init_population()
-  {  
-    size_t i;  
-    population.reserve(population_size);
-    for(i = 0; i < population_size; ++i)
-    {
-      std::vector<int> chromosome(chromosome_size);
-      std::iota(chromosome.begin(), chromosome.end(), 0);
-      std::shuffle(chromosome.begin(), chromosome.end(), std::mt19937{std::random_device{}()});
-      population.push_back(chromosome);
-    }
-  }
-
-  void init_ranges()
-  {
-    // setup ranges to be given to the workers to work without data races
-    for(size_t i=0; i<num_workers; ++i)
-      ranges.push_back(std::make_pair( i*chunks_size
-                                     ,(i != (num_workers-1) ? (i+1)*chunks_size : population_size)));
+    // SELECTION PHASE
+    selection(0, population_size);
+    // **************************************************************************************
   }
 
   void evaluate_population(size_t const& chunk_s, size_t const& chunk_e)
   {
     size_t i;
 
-    for(i=chunk_s; i < chunk_e; ++i) // CHECK THIS LOOP IF SOMETHING WRONG
-    {
+    for(i=chunk_s; i < chunk_e; ++i)
+    { // putting emplace_back here instead on assignment operator yields a "double free or corruption (!prev)"
       chromosomes_fitness[i] = fit_fun(population[i]); // O(m) part
     }
   }
@@ -130,7 +138,7 @@ private:
 
     auto curr_gen_min_val = current_optimum.first;
     auto curr_gen_max_val = curr_gen_min_val;
-    for(i=chunk_s; i < chunk_e; ++i) // CHECK THIS LOOP IF SOMETHING WRONG
+    for(i=chunk_s; i < chunk_e; ++i)
     {
       // check if we have a new minimum for the current generation 
       if(chromosomes_fitness[i] < curr_gen_min_val)
@@ -159,24 +167,6 @@ private:
     curr_glob_opt_idx                     = curr_gen_max_idx;
   }
 
-
-  // helper function used in crossover
-  std::vector<int> pmx( std::vector<int> const& parent_1
-                      , std::vector<int> const& parent_2
-                      , size_t cross_point) 
-  {
-    size_t i;
-    std::vector<int> offspring(parent_1);
-    for (size_t j = 0; j < cross_point; j++) 
-    {
-        i = std::distance( offspring.begin()
-                         , std::find( offspring.begin()
-                                    , offspring.end()
-                                    , parent_2[j]));
-        std::swap(offspring[j], offspring[i]);
-    }
-    return offspring;
-  }
 
 void crossover(size_t const& chunk_s, size_t const& chunk_e) // recall, index chunk_e is not in the computed interval
   {

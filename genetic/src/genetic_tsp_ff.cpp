@@ -40,7 +40,8 @@ int main(int argc, char const *argv[])
                         return tour_cost;
                       };
   
-  Genetic_TSP_FF test( nw
+  Genetic_TSP_FF test( max_epochs
+                     , nw
                      , pop_size 
                      , chromo_size
                      , cross_prob
@@ -48,38 +49,38 @@ int main(int argc, char const *argv[])
                      , fit_funct
                      );
 
-  { // Parallel FastFlow EXECUTION
-    auto start = std::chrono::high_resolution_clock::now();
+  // FF PAR EXECUTION
+  auto start = std::chrono::high_resolution_clock::now();
 
-                          
-    while(epoch < max_epochs) 
-    { 
-      // std::cout<<"epoch: "<<epoch<< " | curr min:" << test.get_current_optimum().first << "\n";
-      test.next_generation(nw);
-      ++epoch;
-    }
+  test.run();
 
-    auto elapsed = std::chrono::high_resolution_clock::now() - start;
-    auto usec    = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
-    std::cout<<"\nParallel (FastFlow) execution on a completely connected random graph with " << chromo_size << " nodes took (usec): "<< usec << std::endl;
-  
-    //std::cout << "Speedup is " << ((float) tseq)/((float) msec) << " (should be " << nw << ")" << std::endl; 
-
-  }
+  auto elapsed = std::chrono::high_resolution_clock::now() - start;
+  auto usec    = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
 
   auto result = test.get_current_optimum().first;
-  auto v      = test.get_current_optimum().second;
 
-  std::cout<<"min cost ham tour: " << result <<"\n";
-    
-  std::cout<<"opt tour:\n[";
-  for( auto e : v) std::cout<<e << ",";
+
+  // WRITE RESULTS ON A FILE FOR FUTURE ANALYSIS
+  std::ofstream out_file;
+  out_file.open( "results/"
+               + (std::to_string(max_epochs))
+               + "-max_epochs-"
+               + (std::to_string(pop_size))
+               + "-chromo-"
+               + (std::to_string(chromo_size))
+               + "-cities-"
+               + (std::to_string(nw))
+               +"-nw_FF.data"
+               , std::ios::app);
+  out_file << usec << "\n";
+  out_file.close();
+
+  // DEBUG PRINTINGS
+  std::cout<<"\n***\nglob opt = " << test.get_current_optimum().first << "\n";
+  std::cout<<"glob opt tour= [ ";
+  for(auto e : test.get_current_optimum().second) std::cout<< e << " ";
   std::cout<<"]\n";
+  std::cout << "time= " << usec << "\n";
   
-  // no duplicates tests
-  // std::sort(v.begin(), v.end());
-  // for( auto e : v) std::cout<<e << ",";
-  // std::cout<<"\n";
-
   return 0;
 }

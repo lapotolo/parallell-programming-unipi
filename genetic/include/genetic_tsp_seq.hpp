@@ -7,27 +7,28 @@ class Genetic_TSP_Sequential : Genetic_Algorithm<std::vector<std::vector<int>>, 
 {
 public:
   // constructor,
-  Genetic_TSP_Sequential( size_t pop_s // chromosome number
+  Genetic_TSP_Sequential( size_t max_its
+                        , size_t pop_s // chromosome number
                         , size_t chromo_s
                         , float p1
                         , float p2
                         , std::function<int32_t(std::vector<int> const&)> f
                         )
-                        : Genetic_Algorithm(pop_s, chromo_s, p1, p2 ,f)
+                        : curr_glob_opt_idx(0)
+                        , Genetic_Algorithm(max_its, pop_s, chromo_s, p1, p2 ,f)
   {
-    curr_glob_opt_idx = 0;
     init_population();
-    chromosomes_fitness.resize(pop_s);
+    chromosomes_fitness.reserve(pop_s);
+    evaluate_population(0, pop_s);
     current_optimum = std::make_pair( f(population[curr_glob_opt_idx])
                                     , population[curr_glob_opt_idx]);
   }
 
-  void next_generation()
+  void run()
   {
-    evaluate_population(0, population_size);
-    selection(0, population_size);
-    mutate(0, population_size);
-    crossover(0, population_size);
+    size_t curr_epoch = 0;
+    while( curr_epoch++ < max_epochs)
+      next_generation();
   }
 
   std::pair<int32_t, std::vector<int>> get_current_optimum() { return current_optimum; }   
@@ -44,7 +45,7 @@ private:
       std::vector<int> chromosome(chromosome_size);
       std::iota(chromosome.begin(), chromosome.end(), 0);
       std::shuffle(chromosome.begin(), chromosome.end(), std::mt19937{std::random_device{}()});
-      population.push_back(chromosome);
+      population.emplace_back(chromosome);
     }
   }
 
@@ -54,8 +55,16 @@ private:
 
     for(i=chunk_s; i < chunk_e; ++i) // CHECK THIS LOOP IF SOMETHING WRONG
     {
-      chromosomes_fitness[i] = fit_fun(population[i]); // O(m) part
+      chromosomes_fitness.emplace_back(fit_fun(population[i])); // O(m) part
     }
+  }
+  
+  void next_generation()
+  {
+    crossover(0, population_size);
+    mutate(0, population_size);
+    evaluate_population(0, population_size);
+    selection(0, population_size);
   }
 
   void selection(size_t const& chunk_s, size_t const& chunk_e)

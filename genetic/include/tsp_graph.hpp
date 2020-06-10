@@ -50,7 +50,7 @@ protected:
       std::vector<uint16_t> adj_list(num_nodes);
       for(z = i+1;  z < num_nodes; ++z) adj_list[z] = distrib_w(gen);
 
-      graph_m.push_back(adj_list);
+      graph_m.emplace_back(adj_list);
     }
   }
 

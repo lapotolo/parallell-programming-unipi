@@ -2,7 +2,6 @@
 
 # possible improvement take arguments seq par ff all
 
-cd /home/lapo/Documenti/repo/parallell-programming-unipi/genetic
 rm -r build
 mkdir -p build
 

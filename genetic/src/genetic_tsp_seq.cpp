@@ -40,7 +40,8 @@ int main(int argc, char const *argv[])
                       };
   
   // get an instance of the mini framework representing genetic algorithms
-  Genetic_TSP_Sequential test( pop_size 
+  Genetic_TSP_Sequential test( max_epochs
+                             , pop_size 
                              , chromo_size
                              , cross_prob
                              , mutat_prob
@@ -50,21 +51,12 @@ int main(int argc, char const *argv[])
   // SEQUENTIAL EXECUTION
   auto start = std::chrono::high_resolution_clock::now();
 
-  while(epoch < max_epochs) 
-  {
-    //std::cout<<"epoch: "<<epoch<< " | curr min:" << test.get_current_optimum().first << "\n";
-    //std::cout<<"opt tour= [ ";
-    //for(auto e : test.get_current_optimum().second)std::cout<< e << " ";
-    //std::cout<<"]\n\n";
-    test.next_generation();
-    ++epoch;
-  }
+  test.run();
 
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
   auto usec    = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
 
   auto result = test.get_current_optimum().first;
-
 
   std::ofstream out_file;
   out_file.open( "results/"
@@ -76,10 +68,10 @@ int main(int argc, char const *argv[])
                + "-cities"
                + "_seq.data"
                , std::ios::app);
-  //num_threads tService fitness_value solution
   out_file << usec << "\n";
   out_file.close();
 
+  // DEBUG PRINTINGS
   std::cout<<"\n***\nglob opt = " << test.get_current_optimum().first << "\n";
   std::cout<<"glob opt tour= [ ";
   for(auto e : test.get_current_optimum().second) std::cout<< e << " ";
