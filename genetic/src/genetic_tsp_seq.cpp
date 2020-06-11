@@ -3,19 +3,15 @@
 
 int main(int argc, char const *argv[])
 {
-  if(argc != 1+5) // niter, pop_size, chromo_size, cross_prob, mutate_prob
+  if(argc != 1+3) // niter, pop_size, chromo_size, cross_prob, mutate_prob
   {
-    std::cout << "Sequential Genetic TSP Usage is: <max_epochs> <population_size> <chromosome_size> <cross_probability> <mutation_probability>\nShutting down.\n";
+    std::cout << "Sequential Genetic TSP Usage is: <max_epochs> <population_size> <chromosome_size>\nShutting down.\n";
     return -1;
   }
 
   size_t max_epochs  = atoi(argv[1]);
   size_t pop_size    = atoi(argv[2]);
   size_t chromo_size = atoi(argv[3]);
-  float  cross_prob  = atof(argv[4]);
-  float  mutat_prob  = atof(argv[5]);
-
-  size_t epoch = 0;
 
   // create a complete weighted graph with #chromo_size numbers on node
   // edges' weights are i.i.d from the range [1,100]
@@ -43,8 +39,6 @@ int main(int argc, char const *argv[])
   Genetic_TSP_Sequential test( max_epochs
                              , pop_size 
                              , chromo_size
-                             , cross_prob
-                             , mutat_prob
                              , fit_funct
                              );
 

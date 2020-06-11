@@ -15,16 +15,12 @@ public:
   Genetic_Algorithm( size_t max_its
                    , size_t pop_s
                    , size_t chromo_s
-                   , float p1
-                   , float p2
                    , std::function<int32_t(std::vector<int> const&)> f
                    )
                    : 
                      max_epochs(max_its)
                    , population_size(pop_s)
                    , chromosome_size(chromo_s)
-                   , crossover_prob(p1)
-                   , mutation_prob(p2)
                    , fit_fun(f)
                    {};
 
@@ -38,8 +34,6 @@ protected:
   size_t max_epochs;      // maximum number of iterations of the algorithm
   size_t population_size; // population size.
   size_t chromosome_size; // chromosome size (hopefully it is represented as a stl container)
-  float crossover_prob;   // probability that two next chromosomes are crossed over during an iteration of the genetic algorithm
-  float mutation_prob;    // probability that a chromosome mutates during an iteration of the genetic algorithm
   
   // other fields
   Population_t population;

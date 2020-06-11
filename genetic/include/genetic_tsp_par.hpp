@@ -14,14 +14,12 @@ public:
                       , size_t max_its  
                       , size_t pop_s // chromosome number
                       , size_t chromo_s
-                      , float p1
-                      , float p2
                       , std::function<int32_t(std::vector<int> const&)> f
                       )
                       : num_workers(nw)
                       , chunks_size(pop_s/nw)
                       , curr_glob_opt_idx(0)
-                      , Genetic_Algorithm(max_its, pop_s, chromo_s, p1, p2 ,f)
+                      , Genetic_Algorithm(max_its, pop_s, chromo_s,f)
 
   {
     init_population();
@@ -167,7 +165,7 @@ void crossover(size_t const& chunk_s, size_t const& chunk_e) // recall, index ch
     std::random_device rd;  // get a seed for the random number engine
     std::mt19937 gen(rd()); // standard mersenne_twister_engine seeded with rd()
 
-    std::discrete_distribution<> biased_coin({ 1-crossover_prob, crossover_prob });
+    std::discrete_distribution<> biased_coin({ 1-CROSSOVER_PROB, CROSSOVER_PROB });
   
     for(i=chunk_s; i < chunk_e-1; i+=2)
     {
@@ -227,7 +225,7 @@ void crossover(size_t const& chunk_s, size_t const& chunk_e) // recall, index ch
     std::random_device rd;  // get a seed for the random number engine
     std::mt19937 gen(rd()); // standard mersenne_twister_engine seeded with rd()
 
-    std::discrete_distribution<> biased_coin({ 1-mutation_prob, mutation_prob });
+    std::discrete_distribution<> biased_coin({ 1-MUTATION_PROB, MUTATION_PROB });
     std::uniform_int_distribution<> idx_distr(0, chromosome_size-1);
 
     for(i=chunk_s; i < chunk_e; ++i)

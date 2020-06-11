@@ -3,9 +3,9 @@
 
 int main(int argc, char const *argv[])
 {
-	if(argc != 1+6) // nw, niter, pop_size, chromo_size, cross_prob, mutate_prob
+	if(argc != 1+4) // nw, niter, pop_size, chromo_size, cross_prob, mutate_prob
   {
-		std::cout << "Parallel Genetic TSP Usage is: <number_of_workers> <max_epochs> <population_size> <chromosome_size> <cross_probability> <mutation_probability>\nShutting down.\n";
+		std::cout << "Parallel Genetic TSP Usage is: <number_of_workers> <max_epochs> <population_size> <chromosome_size>\nShutting down.\n";
 		return -1;
 	}
 
@@ -13,10 +13,6 @@ int main(int argc, char const *argv[])
   size_t max_epochs  = atoi(argv[2]);
   size_t pop_size    = atoi(argv[3]);
   size_t chromo_size = atoi(argv[4]);
-  float cross_prob  = atof(argv[5]);
-  float mutat_prob  = atof(argv[6]);
-
-  size_t epoch = 0;
 
   // create a complete weighted graph with #chromo_size numbers on node
   // edges' weights are i.i.d from the range [1,100]
@@ -42,8 +38,6 @@ int main(int argc, char const *argv[])
                            , max_epochs
                            , pop_size 
                            , chromo_size
-                           , cross_prob
-                           , mutat_prob
                            , fit_funct
                            );
 

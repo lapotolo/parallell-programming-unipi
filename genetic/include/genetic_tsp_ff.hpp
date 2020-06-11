@@ -15,13 +15,11 @@ public:
                 , size_t max_its
                 , size_t pop_s // chromosome number
                 , size_t chromo_s
-                , float p1
-                , float p2
                 , std::function<int32_t(std::vector<int> const&)> f
                 )
                 : num_workers(nw)
                 , curr_glob_opt_idx(0)
-                , Genetic_Algorithm(max_its, pop_s, chromo_s, p1, p2 ,f)
+                , Genetic_Algorithm(max_its, pop_s, chromo_s, f)
 
   {
     //chunks_size = pop_s/nw;
@@ -33,6 +31,14 @@ public:
   }
   void run() // FF is deployed in here
   {
+  std::cout<<"pop=\n";
+  for(auto r : population)
+  {
+    for(auto e:r) std::cout<<e << " ";
+    std::cout<<"\n"; 
+  }
+  std::cout<<"\n";
+
   size_t i;
 
   TSP_Master master (num_workers
@@ -54,6 +60,7 @@ public:
   ff::ff_Farm<TSP_Task> farm_gene_tsp(std::move(tsp_workers), master);
   farm_gene_tsp.remove_collector();
   farm_gene_tsp.wrap_around();
+  std::cout<<"before run\n";
 
   // run the farm
   ff::ffTime(ff::START_TIME);
@@ -86,7 +93,6 @@ private:
       population.emplace_back(chromosome);
     }
   }
-  ]
 };
 
 #endif // GENETIC_TSP_FF_H
