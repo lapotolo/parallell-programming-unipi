@@ -5,7 +5,6 @@
 //#include "thread_pool.hpp"
 
 #include <thread>
-#include <mutex>
 
 class Genetic_TSP_Parallel : Genetic_Algorithm<std::vector<std::vector<int>>, std::vector<int>, int32_t>
 {
@@ -29,14 +28,8 @@ public:
     chromosomes_fitness.reserve(pop_s);
     evaluate_population(0, pop_s);
     current_optimum = std::make_pair( f(population[curr_glob_opt_idx])
-                                    , population[curr_glob_opt_idx]);
+                                    ,   population[curr_glob_opt_idx]);
     init_ranges();  // setup ranges for thread tasks' splitting
-
-    std::cout<<"ranges: \n";
-    for(auto e : ranges) std::cout<< "["<< e.first << ","  << e.second<< ") | ";
-    std::cout<<"\n";
-    std::cout<<"------------------------------\n";
-
   }
 
   void run()
@@ -55,10 +48,9 @@ private:
   size_t chunks_size; // number of chromosome that each worker have to deal with
   size_t curr_glob_opt_idx; // index of the global optimum in the current population
 
-
   std::vector<std::pair<size_t, size_t>> ranges;
 
-  
+
   void init_population()
   {  
     size_t i;  
@@ -242,6 +234,7 @@ void crossover(size_t const& chunk_s, size_t const& chunk_e) // recall, index ch
       if( i != curr_glob_opt_idx and biased_coin(gen))
         std::swap(population[i][idx_distr(gen)], population[i][idx_distr(gen)]); // thread safe?
   }
+
 };
 
 #endif // GENETIC_TSP_PAR_H

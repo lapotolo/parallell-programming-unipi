@@ -22,8 +22,6 @@ int main(int argc, char const *argv[])
   // edges' weights are i.i.d from the range [1,100]
   TSP_Graph test_graph(chromo_size);
 
-  //test_graph.print_graph();
-
   // tried to overload operator() but strangely didnt work :()
   auto fit_funct = [&](std::vector<int> const& chromo)
                       {
@@ -39,7 +37,7 @@ int main(int argc, char const *argv[])
                         else { tour_cost += test_graph[chromo[chromo_size-1]][chromo[0]]; }
                         return tour_cost;
                       };
-  
+
   Genetic_TSP_Parallel test( nw
                            , max_epochs
                            , pop_size 
