@@ -51,9 +51,6 @@ protected:
   // init the population: ie: allocating memory for the matrix representing the population
   void init_population();
 
-  // evolve the population, that is one iteration of the genetic algorithm
-  void next_generation();
-  
   // evaluate the population and updates the collection chromosomes fitness
   // returns the index of the best chromosome
   void evaluate_population(size_t const& chunk_s, size_t const& chunk_e);

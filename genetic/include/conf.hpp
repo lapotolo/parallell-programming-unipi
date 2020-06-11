@@ -12,4 +12,12 @@
 #include <chrono> 
 #include <fstream>
 
+#include <thread>
+
+#define CROSSOVER_PROB 0.5
+#define MUTATION_PROB 0.3
+
+
+
+
 #endif // CONF_H
