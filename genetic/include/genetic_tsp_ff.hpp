@@ -13,25 +13,24 @@ public:
   // constructor. First generation is composed of random (feasible) chromosomes
   Genetic_TSP_FF( size_t nw
                 , size_t max_its
-                , size_t pop_s // chromosome number
+                , size_t pop_s
                 , size_t chromo_s
                 , std::function<int32_t(std::vector<int> const&)> f
                 )
                 : num_workers(nw)
                 , curr_glob_opt_idx(0)
                 , Genetic_Algorithm(max_its, pop_s, chromo_s, f)
-
   {
-    //chunks_size = pop_s/nw;
     init_population();
-    chromosomes_fitness.reserve(pop_s);
-    //evaluate_population(0, pop_s);  CHECK IF NEEDED
+    chromosomes_fitness.resize(pop_s, 0); // WHY IS THIS NEEDED?
     current_optimum = std::make_pair( f(population[curr_glob_opt_idx])
                                     ,   population[curr_glob_opt_idx]);
   }
+
+
   void run() // FF is deployed in here
   {
-  std::cout<<"pop=\n";
+  std::cout<<"Starting population=\n";
   for(auto r : population)
   {
     for(auto e:r) std::cout<<e << " ";
