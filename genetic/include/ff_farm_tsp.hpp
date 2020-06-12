@@ -27,7 +27,6 @@ struct Gen_TSP_FF_Data_ptrs
   std::shared_ptr<std::vector<int>> fit_values;
   std::shared_ptr<std::function<int32_t(std::vector<int> const&)>> fit_fun;
   std::shared_ptr<std::pair<int32_t, std::vector<int>>> curr_opt;
-  std::shared_ptr<size_t> opt_idx;
 };
 
 
@@ -43,7 +42,7 @@ struct TSP_Task
 };
 
 
-struct TSP_Master : ff::ff_node_t<TSP_Task >
+struct TSP_Master : ff::ff_monode_t<TSP_Task >
 {
   // FIELDS
   size_t num_workers;
@@ -66,12 +65,11 @@ struct TSP_Master : ff::ff_node_t<TSP_Task >
             , std::shared_ptr<std::vector<int>> fit_values
             , std::shared_ptr<std::function<int32_t(std::vector<int> const&)>> fit_fun
             , std::shared_ptr<std::pair<int32_t, std::vector<int>>> curr_opt
-            , std::shared_ptr<size_t> opt_idx
             )
             : num_workers(nw)
             , max_epochs(max_its)
             , population_size(pop_s)
-            , master_ptrs({pop, fit_values, fit_fun, curr_opt, opt_idx})
+            , master_ptrs({pop, fit_values, fit_fun, curr_opt})
             , curr_epoch(0)
             , dispatched_curr_gen(0)
             , received_curr_gen(0)
@@ -128,16 +126,16 @@ void TSP_Master::selection(std::vector<TSP_Task> & workers_results)
   for(auto & t : workers_results)
   {
     // check if we have a new minimum for the current generation 
-    if(pointer_pack.fit_values->at(t.fst_idx) < curr_gen_min_val)
+    if((*pointer_pack.fit_values)[t.fst_idx] < curr_gen_min_val)
     {
       curr_gen_min_idx = t.fst_idx;
-      curr_gen_min_val = pointer_pack.fit_values->at(t.fst_idx);
+      curr_gen_min_val = (*pointer_pack.fit_values)[t.fst_idx];
     }
     // check if we have a new maximum for the current generation 
-    else if(pointer_pack.fit_values->at(t.snd_idx) > curr_gen_max_val)
+    else if((*pointer_pack.fit_values)[t.snd_idx] > curr_gen_max_val)
     {
       curr_gen_max_idx = t.snd_idx;
-      curr_gen_max_val = pointer_pack.fit_values->at(t.snd_idx);
+      curr_gen_max_val = (*pointer_pack.fit_values)[t.snd_idx];
     }
   }
 
@@ -146,70 +144,62 @@ void TSP_Master::selection(std::vector<TSP_Task> & workers_results)
   if(curr_gen_min_val < pointer_pack.curr_opt->first)
   {
     pointer_pack.curr_opt->first  = curr_gen_min_val;
-    pointer_pack.curr_opt->second = pointer_pack.pop->at(curr_gen_min_idx);
-    *(pointer_pack.opt_idx) = curr_gen_min_idx;
+    pointer_pack.curr_opt->second = (*pointer_pack.pop)[curr_gen_min_idx];
   }
   // inject the global optimum from previous generations in the current generation
   // in place of the worst chromosome of the current generation    
-  pointer_pack.fit_values->at(curr_gen_max_idx) = pointer_pack.curr_opt->first;
-  pointer_pack.pop->at(curr_gen_max_idx)        = pointer_pack.curr_opt->second;
-  *(pointer_pack.opt_idx)                       = curr_gen_max_idx;
+  (*pointer_pack.fit_values)[curr_gen_max_idx] = pointer_pack.curr_opt->first;
+  (*pointer_pack.pop)[curr_gen_max_idx]        = pointer_pack.curr_opt->second;
 }
 
 // TSP_Master
-TSP_Task* TSP_Master::svc(TSP_Task* tsp_task) // dispatched_tasks CANNOT WORK
+TSP_Task* TSP_Master::svc(TSP_Task* tsp_task)
 {
   std::cout<< "\n  >> [START] Am I gonna send or receive?\n             curr_epoch: " << curr_epoch <<"\n";
-  if(tsp_task == nullptr || dispatched_curr_gen == 0)
+  if(tsp_task == nullptr) // && dispatched_curr_gen == 0)
   {
     std::cout<< "\n  >> [SEND] As the Master I'm gonna dispatch, curr_epoch: "<< curr_epoch <<"\n";
-    // spit out tasks to workers
-    if( dispatched_curr_gen <= num_workers) dispatch_tasks();
+    dispatch_tasks();
     std::cout<< "  >> [SEND] Finished dispatching, tasks dispatched curr gen: "<< dispatched_curr_gen << "\n";
     return GO_ON;
-  } // OTHERWISE WE ARE RECEIVING FROM THE FEEDBACK CHANNEL COMING FROM THE WORKERS
+  }
   // store each workers' result in a vector on which we will perform selection
-  std::cout<< "\n  >> [RECEIVE] Hello, your master is waiting for some results...\n";
-  std::cout<< "               Num Dispatched this gen: " << dispatched_curr_gen << ", curr epoch: " << curr_epoch << "\n";  
-  std::cout<< "               PRE-push_back results size: " << workers_results_to_merge.size() << "\n";  
-  std::cout<< "               Push back of the a new result is coming\n";
-  workers_results_to_merge.push_back(*tsp_task);
-  std::cout<< "               POST-push_back results size: " << workers_results_to_merge.size() << "\n";  
-  
-  delete tsp_task;
-  // keep track of how many workers sent back a result for the current generation
-  // BARRIER TO WAIT FOR ALL THE SEGMENTS BACK FROM WORKERS FOR THIS GENERATION    
+  else if(tsp_task != nullptr)
+  {
+    workers_results_to_merge.push_back(*tsp_task);
+    delete tsp_task;
+#if DEBUG    
+    std::cout<< "\n  >> [RECEIVE] Master received something different from nullptr\n";
+    std::cout<< "               POST-push_back results size: " << workers_results_to_merge.size() << "\n";  
+#endif
+  }
   if(workers_results_to_merge.size() == dispatched_curr_gen) // if every worker sent back its result for the current gen
   {
-#ifdef DEBUG
-    std::cout<<"\n  >> [IN IF] curr_epoch               : " << curr_epoch << "\n";
-    std::cout<<"  >> [IN IF] Size of results to merge : " << workers_results_to_merge.size() << "\n";
-    std::cout<<"  >> [IN IF] Task dispatched curr gen : " << dispatched_curr_gen << "\n";
+#if DEBUG
+    std::cout<<"\n  >> [IN IF] So we have (Size of results) == (Task dispatched), that is : " << workers_results_to_merge.size() << " == " << dispatched_curr_gen<< "\n";
     std::cout<<"  >> [IN IF] chromo_fitness:   [ ";
     for(auto e : (*master_ptrs.fit_values)) std::cout<<e << " ";
     std::cout<<" ]\n";
     std::cout<<"  >> [IN IF] Results this gen: [ ";
     for(auto e : workers_results_to_merge) std::cout<< "(min_idx="<<e.fst_idx << ", MAX_idx=" <<e.snd_idx<<") ";
-    std::cout<< "]\n";
+    std::cout<< "]\n  >>         Now Master will perform selection\n";
 #endif
-    selection(workers_results_to_merge); // WHEN WE GOT ALL THE OPTS OF THIS GENERATION DO THE SELECTION
-#ifdef DEBUG
-    std::cout<<"  >> [IN IF] Finished Selection "<<"\n";
-    std::cout<<"  >> [IN IF] CURR GLOB MIN IDX : " << *master_ptrs.opt_idx <<"\n";
+    selection(workers_results_to_merge); // merge subresult received from workers
+#if DEBUG
+    std::cout<<"  >> [IN IF] Finished Selection"<<"\n";
     std::cout<<"  >> [IN IF] CURR GLOB MIN VAL : " << master_ptrs.curr_opt->first <<"\n";
     std::cout<<"  >> [IN IF] CURR GLOB MIN TOUR: [ ";
     for(auto e : (master_ptrs.curr_opt->second)) std::cout<<e << " ";
     std::cout<<"]\n";
     std::cout<<"  >> [IN IF] Increasing epoch. From: " << curr_epoch << " to " << curr_epoch+1 <<"\n";
 #endif
-    curr_epoch++;
     dispatched_curr_gen = 0;
     workers_results_to_merge.clear();
-    std::cout<<"  >> [IN IF] Size of results to merge after clear : " << workers_results_to_merge.size() << "\n";
-    if( curr_epoch >= max_epochs) {std::cout<<"  >> Gonna EOS. I'm sick and tired to work with these workers!\n"; return EOS;}
-#ifdef DEBUG
+    if( ++curr_epoch == max_epochs) {std::cout<<"  >> Gonna EOS. I'm sick and tired to work with these workers!\n"; return EOS;}
+#if DEBUG
     std::cout<< "  >> [IN IF] I could not send EOS."<<"\n";
 #endif
+    dispatch_tasks();
   }
   std::cout<< "\n  >> [AFTER IF] I will send GO_ON. I need to work some more..."<<"\n";
   return GO_ON; // go next epoch. Right?
@@ -299,7 +289,7 @@ void TSP_Worker::mutate(TSP_Task & task)
   std::uniform_int_distribution<> idx_distr(0, chromosome_size-1);
 
   for(i=task.fst_idx; i < task.snd_idx; ++i)
-    if( i != *pointer_pack.opt_idx and biased_coin(gen))
+    if( biased_coin(gen))
       std::swap((*pointer_pack.pop)[i][idx_distr(gen)], (*pointer_pack.pop)[i][idx_distr(gen)]); // thread safe?
 }
 
@@ -311,12 +301,12 @@ TSP_Task* TSP_Worker::evaluate_population(TSP_Task & task)
   auto sub_pop_min_idx = task.fst_idx;
   auto sub_pop_max_idx = task.fst_idx;
 
-  auto sub_pop_min_val = (*pointer_pack.fit_fun)((*pointer_pack.pop)[0]);
+  auto sub_pop_min_val = (*pointer_pack.fit_fun)((*pointer_pack.pop)[sub_pop_min_idx]);
   auto sub_pop_max_val = sub_pop_min_val;
 
-  for(i=task.fst_idx; i <= task.snd_idx; ++i)
+  for(i=task.fst_idx; i <= task.snd_idx; ++i) // here the right end of the range is included in the computed range!
   { 
-    (*pointer_pack.fit_values)[i] = (*pointer_pack.fit_fun)((*pointer_pack.pop)[i]); // MUORE QUA
+    (*pointer_pack.fit_values)[i] = (*pointer_pack.fit_fun)((*pointer_pack.pop)[i]);
     // looking for new best individual
     if((*pointer_pack.fit_values)[i] < sub_pop_min_val)
     {
@@ -341,9 +331,9 @@ TSP_Task* TSP_Worker::svc(TSP_Task* tsp_task)
   mutate(*tsp_task);
   auto to_send = evaluate_population(*tsp_task);
   //std::cout<<"!! EVALUATION FINISHED. THE WORKER IS GONNA SEND STUFF BACK\n";
-
-  ff_send_out(to_send);
-  return GO_ON;
+  return to_send;
+  //ff_send_out(to_send);
+  //return GO_ON;
 }
 
 #endif // FF_FARM_TSP_H

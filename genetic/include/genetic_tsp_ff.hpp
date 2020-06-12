@@ -18,26 +18,24 @@ public:
                 , std::function<int32_t(std::vector<int> const&)> f
                 )
                 : num_workers(nw)
-                , curr_glob_opt_idx(0)
                 , Genetic_Algorithm(max_its, pop_s, chromo_s, f)
   {
     init_population();
     chromosomes_fitness.resize(pop_s, 0); // WHY IS THIS NEEDED?
-    current_optimum = std::make_pair( f(population[curr_glob_opt_idx])
-                                    ,   population[curr_glob_opt_idx]);
+    current_optimum = std::make_pair( f(population[0])
+                                    ,   population[0]);
   }
 
 
   void run() // FF is deployed in here
   {
-  std::cout<<"Starting population=\n";
-  for(auto r : population)
-  {
-    for(auto e:r) std::cout<<e << " ";
-    std::cout<<"\n"; 
-  }
-  std::cout<<"\n";
-
+  //std::cout<<"Starting population=\n";
+  //for(auto r : population)
+  //{
+  //  for(auto e:r) std::cout<<e << " ";
+  //  std::cout<<"\n"; 
+  //}
+  //std::cout<<"\n";
   size_t i;
 
   TSP_Master master (num_workers
@@ -47,7 +45,6 @@ public:
                    , std::make_shared<std::vector<int>>(chromosomes_fitness)
                    , std::make_shared<std::function<int32_t(std::vector<int> const&)>>(fit_fun)
                    , std::make_shared<std::pair<int32_t, std::vector<int>>>(current_optimum)
-                   , std::make_shared<size_t>(curr_glob_opt_idx)
                    );
 
   // create the vector keeping pointers for farm's workers
@@ -59,7 +56,6 @@ public:
   ff::ff_Farm<TSP_Task> farm_gene_tsp(std::move(tsp_workers), master);
   farm_gene_tsp.remove_collector();
   farm_gene_tsp.wrap_around();
-  std::cout<<"before run\n";
 
   // run the farm
   ff::ffTime(ff::START_TIME);
@@ -78,7 +74,6 @@ public:
 private:
   size_t num_workers;
   size_t chunks_size; // number of chromosome that each worker have to deal with
-  size_t curr_glob_opt_idx; // index of the global optimum in the current population
 
   void init_population()
   {  
