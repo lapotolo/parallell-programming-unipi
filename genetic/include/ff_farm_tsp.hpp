@@ -8,6 +8,8 @@
 #include <ff/pipeline.hpp>
 #include <ff/farm.hpp>
 
+#define DEBUG 1
+#define DEBUG_W 0
 
 // #include "conf.hpp"
 
@@ -103,10 +105,11 @@ struct TSP_Worker : ff::ff_node_t< TSP_Task, TSP_Task >
 void TSP_Master::dispatch_tasks()
 {
   size_t i, step;
-  step = population_size / num_workers;
-  for (i = 0; i + step - 1 < population_size; i += step) // FIX REMAINING PIECES USING     size_t remained = size % threshold;
+  step = population_size / (num_workers); // SET THE STEP PROPERLY. (PAR. SLACK)
+  for (i = 0; i + step - 1 < population_size; i += step) // FIX REMAINING PIECES USING size_t remained = size % threshold;
   {
     auto to_send = new TSP_Task{i, i+step-1 ,master_ptrs};
+    std::cout<< "            Sending: ["<< to_send->fst_idx << ", " << to_send->snd_idx << "]\n";
     ff_send_out(to_send);
     dispatched_curr_gen++;
   }
@@ -114,12 +117,7 @@ void TSP_Master::dispatch_tasks()
 
 void TSP_Master::selection(std::vector<TSP_Task> & workers_results)
 {
-  std::cout<<"  >> Starting selection, curr epoch: "<< curr_epoch <<"\n";
   auto pointer_pack = workers_results[0].ptrs;
-
-  std::cout<<"  >> chromo fit just before selection\n  >> ";
-  for(auto e : *pointer_pack.fit_values) std::cout<< e<<" ";
-  std::cout<<"\n";
 
   auto curr_gen_min_idx = workers_results[0].fst_idx;
   auto curr_gen_max_idx = workers_results[0].snd_idx;
@@ -161,37 +159,59 @@ void TSP_Master::selection(std::vector<TSP_Task> & workers_results)
 // TSP_Master
 TSP_Task* TSP_Master::svc(TSP_Task* tsp_task) // dispatched_tasks CANNOT WORK
 {
-  std::cout<< "  >> Begin of Master svc, curr_epoch: " << curr_epoch <<"\n";
-  if(tsp_task == nullptr)
+  std::cout<< "\n  >> [START] Am I gonna send or receive?\n             curr_epoch: " << curr_epoch <<"\n";
+  if(tsp_task == nullptr || dispatched_curr_gen == 0)
   {
-    std::cout<< "  >> gonna dispatch\n";
+    std::cout<< "\n  >> [SEND] As the Master I'm gonna dispatch, curr_epoch: "<< curr_epoch <<"\n";
     // spit out tasks to workers
     if( dispatched_curr_gen <= num_workers) dispatch_tasks();
-    std::cout<< "  >> finish dispatching, disp curr gen="<< dispatched_curr_gen << "\n";
+    std::cout<< "  >> [SEND] Finished dispatching, tasks dispatched curr gen: "<< dispatched_curr_gen << "\n";
     return GO_ON;
   } // OTHERWISE WE ARE RECEIVING FROM THE FEEDBACK CHANNEL COMING FROM THE WORKERS
   // store each workers' result in a vector on which we will perform selection
-  std::cout<< "  >> Hello, your master is waiting for some results...\n Dispatched: " << dispatched_curr_gen << ", epoch: " << curr_epoch << "\n";
-  
+  std::cout<< "\n  >> [RECEIVE] Hello, your master is waiting for some results...\n";
+  std::cout<< "               Num Dispatched this gen: " << dispatched_curr_gen << ", curr epoch: " << curr_epoch << "\n";  
+  std::cout<< "               PRE-push_back results size: " << workers_results_to_merge.size() << "\n";  
+  std::cout<< "               Push back of the a new result is coming\n";
   workers_results_to_merge.push_back(*tsp_task);
+  std::cout<< "               POST-push_back results size: " << workers_results_to_merge.size() << "\n";  
+  
   delete tsp_task;
   // keep track of how many workers sent back a result for the current generation
-  received_curr_gen++;
   // BARRIER TO WAIT FOR ALL THE SEGMENTS BACK FROM WORKERS FOR THIS GENERATION    
-  if(received_curr_gen == dispatched_curr_gen) // if every worker sent back its result for the current gen
+  if(workers_results_to_merge.size() == dispatched_curr_gen) // if every worker sent back its result for the current gen
   {
-    std::cout<< "  >> Results this gen: [ ";
-    for(auto e : workers_results_to_merge) std::cout<< "("<<e.fst_idx << ", " <<e.snd_idx<<") ";
+#ifdef DEBUG
+    std::cout<<"\n  >> [IN IF] curr_epoch               : " << curr_epoch << "\n";
+    std::cout<<"  >> [IN IF] Size of results to merge : " << workers_results_to_merge.size() << "\n";
+    std::cout<<"  >> [IN IF] Task dispatched curr gen : " << dispatched_curr_gen << "\n";
+    std::cout<<"  >> [IN IF] chromo_fitness:   [ ";
+    for(auto e : (*master_ptrs.fit_values)) std::cout<<e << " ";
+    std::cout<<" ]\n";
+    std::cout<<"  >> [IN IF] Results this gen: [ ";
+    for(auto e : workers_results_to_merge) std::cout<< "(min_idx="<<e.fst_idx << ", MAX_idx=" <<e.snd_idx<<") ";
     std::cout<< "]\n";
-
+#endif
     selection(workers_results_to_merge); // WHEN WE GOT ALL THE OPTS OF THIS GENERATION DO THE SELECTION
-    std::cout<< "  >> Finished Selection "<<"\n";
-    
-    curr_epoch++;                                  // go next gen
+#ifdef DEBUG
+    std::cout<<"  >> [IN IF] Finished Selection "<<"\n";
+    std::cout<<"  >> [IN IF] CURR GLOB MIN IDX : " << *master_ptrs.opt_idx <<"\n";
+    std::cout<<"  >> [IN IF] CURR GLOB MIN VAL : " << master_ptrs.curr_opt->first <<"\n";
+    std::cout<<"  >> [IN IF] CURR GLOB MIN TOUR: [ ";
+    for(auto e : (master_ptrs.curr_opt->second)) std::cout<<e << " ";
+    std::cout<<"]\n";
+    std::cout<<"  >> [IN IF] Increasing epoch. From: " << curr_epoch << " to " << curr_epoch+1 <<"\n";
+#endif
+    curr_epoch++;
     dispatched_curr_gen = 0;
-    received_curr_gen   = 0;
-    if( curr_epoch >= max_epochs) return EOS;
+    workers_results_to_merge.clear();
+    std::cout<<"  >> [IN IF] Size of results to merge after clear : " << workers_results_to_merge.size() << "\n";
+    if( curr_epoch >= max_epochs) {std::cout<<"  >> Gonna EOS. I'm sick and tired to work with these workers!\n"; return EOS;}
+#ifdef DEBUG
+    std::cout<< "  >> [IN IF] I could not send EOS."<<"\n";
+#endif
   }
+  std::cout<< "\n  >> [AFTER IF] I will send GO_ON. I need to work some more..."<<"\n";
   return GO_ON; // go next epoch. Right?
 }
 
@@ -201,6 +221,7 @@ TSP_Task* TSP_Master::svc(TSP_Task* tsp_task) // dispatched_tasks CANNOT WORK
 
 // FARM WORKERS METHODS IMPLEMENTATION
 
+// OK
 void TSP_Worker::crossover(TSP_Task & task)
 {
   auto pointer_pack = task.ptrs;
@@ -264,7 +285,7 @@ void TSP_Worker::crossover(TSP_Task & task)
   } //end for(chunk...)
 }
 
-
+// OK
 void TSP_Worker::mutate(TSP_Task & task)
 {
   auto pointer_pack = task.ptrs;
@@ -282,38 +303,19 @@ void TSP_Worker::mutate(TSP_Task & task)
       std::swap((*pointer_pack.pop)[i][idx_distr(gen)], (*pointer_pack.pop)[i][idx_distr(gen)]); // thread safe?
 }
 
-
+// TO CHECK!
 TSP_Task* TSP_Worker::evaluate_population(TSP_Task & task)
 {
+  size_t i;
   auto pointer_pack = task.ptrs;
-
-  std::cout<<"pop after reproduction=\n";
-  for(auto r : *pointer_pack.pop)
-  {
-    for(auto e:r) std::cout<<e << " ";
-    std::cout<<"\n"; 
-  }
-  std::cout<<"\n";
-  
-  std::cout<<"chromo fit size = " <<(*pointer_pack.fit_values).size()<<"\n";
-  std::cout<<"chromo_fitness= [ ";
-  for(auto e : (*pointer_pack.fit_values)) std::cout<<e << " ";
-  std::cout<<" ]\n";
-
-
   auto sub_pop_min_idx = task.fst_idx;
   auto sub_pop_max_idx = task.fst_idx;
 
   auto sub_pop_min_val = (*pointer_pack.fit_fun)((*pointer_pack.pop)[0]);
   auto sub_pop_max_val = sub_pop_min_val;
 
-  size_t i;
-  for(i=task.fst_idx; i < task.snd_idx; ++i)
+  for(i=task.fst_idx; i <= task.snd_idx; ++i)
   { 
-    std::cout<<"i = " << i << "\n";
-    std::cout<<"fst_idx = " << task.fst_idx << "\n";
-    std::cout<<"snd_idx = " << task.snd_idx << "\n";
-
     (*pointer_pack.fit_values)[i] = (*pointer_pack.fit_fun)((*pointer_pack.pop)[i]); // MUORE QUA
     // looking for new best individual
     if((*pointer_pack.fit_values)[i] < sub_pop_min_val)
@@ -328,21 +330,17 @@ TSP_Task* TSP_Worker::evaluate_population(TSP_Task & task)
       sub_pop_max_idx = i;
     }
   }
-  std::cout<<"EVALUATION FINISHED\n";
   return new TSP_Task{sub_pop_min_idx, sub_pop_max_idx, task.ptrs};
 }
 
+// CHECK!
 TSP_Task* TSP_Worker::svc(TSP_Task* tsp_task)
 {
   TSP_Task &t = *tsp_task;
-  // std::cout<<"worker received:"<< t.fst_idx << " " << t.snd_idx << "\n";
-  // std::cout<<"worker received:"<< tsp_task->fst_idx << " " << tsp_task->snd_idx << "\n";
   crossover(*tsp_task);
-  // std::cout<<"crossover end\n";
   mutate(*tsp_task);
-  // std::cout<<"mutate end\n";
   auto to_send = evaluate_population(*tsp_task);
-  std::cout<<"Gonna send shit back!\n"; // NEVER COMES HERE
+  //std::cout<<"!! EVALUATION FINISHED. THE WORKER IS GONNA SEND STUFF BACK\n";
 
   ff_send_out(to_send);
   return GO_ON;
