@@ -8,9 +8,6 @@
 #include <ff/pipeline.hpp>
 #include <ff/farm.hpp>
 
-#define DEBUG 1
-#define DEBUG_W 0
-
 // #include "conf.hpp"
 
 /*
@@ -107,7 +104,6 @@ void TSP_Master::dispatch_tasks()
   for (i = 0; i + step - 1 < population_size; i += step) // FIX REMAINING PIECES USING size_t remained = size % threshold;
   {
     auto to_send = new TSP_Task{i, i+step-1 ,master_ptrs};
-    std::cout<< "            Sending: ["<< to_send->fst_idx << ", " << to_send->snd_idx << "]\n";
     ff_send_out(to_send);
     dispatched_curr_gen++;
   }
@@ -155,12 +151,9 @@ void TSP_Master::selection(std::vector<TSP_Task> & workers_results)
 // TSP_Master
 TSP_Task* TSP_Master::svc(TSP_Task* tsp_task)
 {
-  std::cout<< "\n  >> [START] Am I gonna send or receive?\n             curr_epoch: " << curr_epoch <<"\n";
   if(tsp_task == nullptr) // && dispatched_curr_gen == 0)
   {
-    std::cout<< "\n  >> [SEND] As the Master I'm gonna dispatch, curr_epoch: "<< curr_epoch <<"\n";
     dispatch_tasks();
-    std::cout<< "  >> [SEND] Finished dispatching, tasks dispatched curr gen: "<< dispatched_curr_gen << "\n";
     return GO_ON;
   }
   // store each workers' result in a vector on which we will perform selection
@@ -168,40 +161,15 @@ TSP_Task* TSP_Master::svc(TSP_Task* tsp_task)
   {
     workers_results_to_merge.push_back(*tsp_task);
     delete tsp_task;
-#if DEBUG    
-    std::cout<< "\n  >> [RECEIVE] Master received something different from nullptr\n";
-    std::cout<< "               POST-push_back results size: " << workers_results_to_merge.size() << "\n";  
-#endif
   }
   if(workers_results_to_merge.size() == dispatched_curr_gen) // if every worker sent back its result for the current gen
   {
-#if DEBUG
-    std::cout<<"\n  >> [IN IF] So we have (Size of results) == (Task dispatched), that is : " << workers_results_to_merge.size() << " == " << dispatched_curr_gen<< "\n";
-    std::cout<<"  >> [IN IF] chromo_fitness:   [ ";
-    for(auto e : (*master_ptrs.fit_values)) std::cout<<e << " ";
-    std::cout<<" ]\n";
-    std::cout<<"  >> [IN IF] Results this gen: [ ";
-    for(auto e : workers_results_to_merge) std::cout<< "(min_idx="<<e.fst_idx << ", MAX_idx=" <<e.snd_idx<<") ";
-    std::cout<< "]\n  >>         Now Master will perform selection\n";
-#endif
     selection(workers_results_to_merge); // merge subresult received from workers
-#if DEBUG
-    std::cout<<"  >> [IN IF] Finished Selection"<<"\n";
-    std::cout<<"  >> [IN IF] CURR GLOB MIN VAL : " << master_ptrs.curr_opt->first <<"\n";
-    std::cout<<"  >> [IN IF] CURR GLOB MIN TOUR: [ ";
-    for(auto e : (master_ptrs.curr_opt->second)) std::cout<<e << " ";
-    std::cout<<"]\n";
-    std::cout<<"  >> [IN IF] Increasing epoch. From: " << curr_epoch << " to " << curr_epoch+1 <<"\n";
-#endif
     dispatched_curr_gen = 0;
     workers_results_to_merge.clear();
-    if( ++curr_epoch == max_epochs) {std::cout<<"  >> Gonna EOS. I'm sick and tired to work with these workers!\n"; return EOS;}
-#if DEBUG
-    std::cout<< "  >> [IN IF] I could not send EOS."<<"\n";
-#endif
+    if( ++curr_epoch == max_epochs) return EOS;
     dispatch_tasks();
   }
-  std::cout<< "\n  >> [AFTER IF] I will send GO_ON. I need to work some more..."<<"\n";
   return GO_ON; // go next epoch. Right?
 }
 
@@ -330,10 +298,7 @@ TSP_Task* TSP_Worker::svc(TSP_Task* tsp_task)
   crossover(*tsp_task);
   mutate(*tsp_task);
   auto to_send = evaluate_population(*tsp_task);
-  //std::cout<<"!! EVALUATION FINISHED. THE WORKER IS GONNA SEND STUFF BACK\n";
   return to_send;
-  //ff_send_out(to_send);
-  //return GO_ON;
 }
 
 #endif // FF_FARM_TSP_H

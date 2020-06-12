@@ -30,6 +30,20 @@ while [ "$n" -lt "$num_exp" ]; do
 
   ./build/par 4 100 100 1000
   #./build/par 4 100 100 10000
+# ------------------------------------------------------------------------------------
+  # FASTFLOW RUNS
+  # changing population size: pop_size=10:10000, *10 steps; chromo_size fixed at 100
+  ./build/ff 4 100 10 100
+  ./build/ff 4 100 100 100
+  ./build/ff 4 100 1000 100
+
+  #./build/ff 4 100 10000 100
+  # changing chromosomes size: pop_size fixed at 100; chromo_size=10:10000, *10 steps
+  ./build/ff 4 100 100 10
+  #./build/ff 4 100 100 100
+
+  ./build/ff 4 100 100 1000
+  #./build/ff 4 100 100 10000
   n=$(( n + 1 ))
 done
 

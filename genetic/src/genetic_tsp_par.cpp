@@ -67,12 +67,12 @@ int main(int argc, char const *argv[])
   out_file << usec << "\n";
   out_file.close();
 
-  // DEBUG PRINTINGS
-  std::cout<<"\n***\nglob opt = " << test.get_current_optimum().first << "\n";
-  std::cout<<"glob opt tour= [ ";
-  for(auto e : test.get_current_optimum().second) std::cout<< e << " ";
-  std::cout<<"]\n";
-  std::cout << "time= " << usec << "\n";
+  // RESULTS PRINTINGS
+  std::cout<<"*****\nopt      = " << test.get_current_optimum().first << "\n";
+  //std::cout<<"glob opt tour= [ ";
+  //for(auto e : test.get_current_optimum().second) std::cout<< e << " ";
+  //std::cout<<"]\n";
+  std::cout << "t_par("<<nw<<") = " << usec << "\n";
   
   return 0;
 }

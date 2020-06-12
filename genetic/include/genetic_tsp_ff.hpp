@@ -29,13 +29,6 @@ public:
 
   void run() // FF is deployed in here
   {
-  //std::cout<<"Starting population=\n";
-  //for(auto r : population)
-  //{
-  //  for(auto e:r) std::cout<<e << " ";
-  //  std::cout<<"\n"; 
-  //}
-  //std::cout<<"\n";
   size_t i;
 
   TSP_Master master (num_workers
@@ -58,14 +51,14 @@ public:
   farm_gene_tsp.wrap_around();
 
   // run the farm
-  ff::ffTime(ff::START_TIME);
+  //ff::ffTime(ff::START_TIME);
   if(farm_gene_tsp.run_and_wait_end() < 0)
   {
     ff::error("running farm");
     return;
   }
-  ff::ffTime(ff::STOP_TIME);
-  std::cout << "Time: " << ff::ffTime(ff::GET_TIME) << "\n";
+  //ff::ffTime(ff::STOP_TIME);
+  //std::cout << "Time: " << ff::ffTime(ff::GET_TIME) << "\n";
   return;
   }
 
