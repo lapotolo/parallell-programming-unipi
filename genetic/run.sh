@@ -1,12 +1,17 @@
 #!/bin/bash
 
 mkdir -p results
+
+# genetic algorithm parameters
+# max number of iteration, number of chromosomes in the population, size of a single chromosomes.
 max_epochs=10
-pop_size=100
+pop_size=1000
 chromo_size=100
 
+# p is used to iterate over the powers of two that are used as increasing parallel degree
+# i is used to iterate over the number of experiments
 p=0
-pmax=3
+pmax=2
 i=0
 num_exp=10
 
