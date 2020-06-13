@@ -1,49 +1,49 @@
 #!/bin/bash
 
-# RECALL THE ORDER
-n=0
-num_exp=50
-while [ "$n" -lt "$num_exp" ]; do
-  # SEQUENTIAL RUNS
-  # changing population size: pop_size=10:10000, *10 steps; chromo_size fixed at 100
-  ./build/seq 100 10 100
-  ./build/seq 100 100 100
-  ./build/seq 100 1000 100
+mkdir -p results
+max_epochs=10
+pop_size=100
+chromo_size=100
 
-  #./build/seq 100 10000 100
-  # changing chromosomes size: pop_size fixed at 100; chromo_size=10:10000, *10 steps
-  ./build/seq 100 100 10
-  #./build/seq 100 100 100
-  ./build/seq 100 100 1000
-  #./build/seq 100 100 10000
-# ------------------------------------------------------------------------------------
-  # PARALLEL RUNS
-  # changing population size: pop_size=10:10000, *10 steps; chromo_size fixed at 100
-  ./build/par 4 100 10 100
-  ./build/par 4 100 100 100
-  ./build/par 4 100 1000 100
+p=0
+pmax=3
+i=0
+num_exp=10
 
-  #./build/par 4 100 10000 100
-  # changing chromosomes size: pop_size fixed at 100; chromo_size=10:10000, *10 steps
-  ./build/par 4 100 100 10
-  #./build/par 4 100 100 100
+echo "Running script to compute t_seq, t_par(nw), t_ff(nw) for nw in the range [1, 2, 4, 8, .. , 128]"
+echo "Every run is on an instance of generic tsp with: "$max_epochs" max epochs, "$pop_size" number of individuals, "$chromo_size" chromosome size/cities."
 
-  ./build/par 4 100 100 1000
-  #./build/par 4 100 100 10000
-# ------------------------------------------------------------------------------------
-  # FASTFLOW RUNS
-  # changing population size: pop_size=10:10000, *10 steps; chromo_size fixed at 100
-  ./build/ff 4 100 10 100
-  ./build/ff 4 100 100 100
-  ./build/ff 4 100 1000 100
 
-  #./build/ff 4 100 10000 100
-  # changing chromosomes size: pop_size fixed at 100; chromo_size=10:10000, *10 steps
-  ./build/ff 4 100 100 10
-  #./build/ff 4 100 100 100
-
-  ./build/ff 4 100 100 1000
-  #./build/ff 4 100 100 10000
-  n=$(( n + 1 ))
+echo -e "\nSEQ part"
+while [ "$i" -lt "$num_exp" ];
+do
+  ./build/seq "$max_epochs" "$pop_size" "$chromo_size" >> ./results/t_seq.data
+  i=$(( i + 1 ))
 done
 
+i=0
+echo "PAR part"
+while [ "$i" -lt "$num_exp" ];
+do
+  p=0
+  while [ "$p" -le "$pmax" ];
+  do
+    ./build/par $((2**p)) "$max_epochs" "$pop_size" "$chromo_size" >> ./results/t_par.data
+    p=$(( p + 1 ))
+  done
+  i=$(( i + 1 ))
+done
+
+i=0
+
+echo "FF part"
+while [ "$i" -lt "$num_exp" ];
+do
+  p=0
+  while [ "$p" -le "$pmax" ];
+  do
+    ./build/ff $((2**p)) "$max_epochs" "$pop_size" "$chromo_size" >> ./results/t_ff.data
+    p=$(( p + 1 ))
+  done
+  i=$(( i + 1 ))
+done

@@ -29,9 +29,11 @@ echo "Setting up the required directory structure"
 
 rm -r results
 mkdir  results
-echo "Created directory results/ to store experiments' results"
+mkdir  results/runs/
+
+echo "Created directory results/runs in order to store experiments' results"
 
 
 echo ""
-echo "Use the provided jupyter notebook to run the experiments interactively."
-echo "Or use the script run.sh to run some default experiments and populate and directory ./results."
+#echo "Use the provided jupyter notebook to run the experiments interactively."
+echo "Use the script run.sh to run some default experiments and populate the directory ./results."

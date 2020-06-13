@@ -54,7 +54,7 @@ int main(int argc, char const *argv[])
 
   // WRITE RESULTS ON A FILE FOR FUTURE ANALYSIS
   std::ofstream out_file;
-  out_file.open( "results/"
+  out_file.open( "results/runs/"
                + (std::to_string(max_epochs))
                + "-max_epochs-"
                + (std::to_string(pop_size))
@@ -68,11 +68,11 @@ int main(int argc, char const *argv[])
   out_file.close();
 
   // RESULTS PRINTINGS
-  std::cout<<"*****\nopt      = " << test.get_current_optimum().first << "\n";
+  //std::cout<<"*****\nopt      = " << test.get_current_optimum().first << "\n";
   //std::cout<<"glob opt tour= [ ";
   //for(auto e : test.get_current_optimum().second) std::cout<< e << " ";
   //std::cout<<"]\n";
-  std::cout << "t_par("<<nw<<") = " << usec << "\n";
+  std::cout << "t_par("<<nw<<")=" << usec << "\n";
   
   return 0;
 }
