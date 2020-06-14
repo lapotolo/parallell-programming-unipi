@@ -1,0 +1,21 @@
+\BOOKMARK [1][-]{section.1}{Problem description}{}% 1
+\BOOKMARK [1][-]{section.2}{Development of a framework to work with genetic algorithms}{}% 2
+\BOOKMARK [1][-]{section.3}{Sequential algorithm for genetic TSP}{}% 3
+\BOOKMARK [2][-]{subsection.3.1}{Input graphs}{section.3}% 4
+\BOOKMARK [2][-]{subsection.3.2}{Problem representation}{section.3}% 5
+\BOOKMARK [2][-]{subsection.3.3}{Algorithm initialization}{section.3}% 6
+\BOOKMARK [2][-]{subsection.3.4}{Crossover}{section.3}% 7
+\BOOKMARK [2][-]{subsection.3.5}{Mutate}{section.3}% 8
+\BOOKMARK [2][-]{subsection.3.6}{Evaluate population}{section.3}% 9
+\BOOKMARK [2][-]{subsection.3.7}{Selection}{section.3}% 10
+\BOOKMARK [2][-]{subsection.3.8}{The algorithm as a whole}{section.3}% 11
+\BOOKMARK [1][-]{section.4}{Parallel solutions design}{}% 12
+\BOOKMARK [1][-]{section.5}{Performance modelling}{}% 13
+\BOOKMARK [2][-]{subsection.5.1}{In theory}{section.5}% 14
+\BOOKMARK [2][-]{subsection.5.2}{Ideal Parallel performances}{section.5}% 15
+\BOOKMARK [1][-]{section.6}{Parallel implementations: structure and details}{}% 16
+\BOOKMARK [2][-]{subsection.6.1}{Naive C++ thread implementation}{section.6}% 17
+\BOOKMARK [2][-]{subsection.6.2}{Threads pool C++ implementation}{section.6}% 18
+\BOOKMARK [2][-]{subsection.6.3}{FastFlow implementation}{section.6}% 19
+\BOOKMARK [1][-]{section.7}{Experimental validation}{}% 20
+\BOOKMARK [1][-]{section.8}{Conclusions and final remarks}{}% 21

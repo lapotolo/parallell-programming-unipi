@@ -12,7 +12,6 @@ chromo_size=100
 # i is used to iterate over the number of experiments
 p=0
 pmax=3
-#pmax=8 
 i=0
 num_exp=10
 

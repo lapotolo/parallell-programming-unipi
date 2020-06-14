@@ -8,10 +8,10 @@ from collections import defaultdict
 # res_directory = './results/'
 
 # many cities (more complex single computation i.e: large graphs)
-res_directory = './results-remote/xeon-results-10-1024-10000/'
+# res_directory = './results-remote/xeon-results-10-1024-10000/'
 
 # many chromosomes (less complex single computation i.e: less large graphs but more tasks subdivision)
-# res_directory = './results-remote/xeon-results-10-16384-1000/'
+res_directory = './results-remote/xeon-results-10-16384-1000/'
 
 
 def speedup(tseq, tpar):
@@ -46,7 +46,7 @@ with open(res_directory+'t_ff.data') as f_tff:
 tseq_data = [float(((l.strip()).split('='))[1]) for l in tseq_data]
 
 # take the average
-tseq_data = np.average(tseq_data)
+tseq_data = int(np.average(tseq_data))
 
 
 # ************************************************************************************
@@ -71,7 +71,7 @@ tpar_data = list(d.items())
 
 
 # finally tpar_data is a list of tuples [(nw, average tpar(nw)), ..]
-tpar_data = sorted([(tpar_data[i][0], np.average(tpar_data[i][1])) for i in range(len(tpar_data))], key=lambda x: x[0])
+tpar_data = sorted([(tpar_data[i][0], int(np.average(tpar_data[i][1]))) for i in range(len(tpar_data))], key=lambda x: x[0])
 
 
 # **************************************************************************
@@ -95,7 +95,7 @@ tpool_data = list(d.items())
 
 
 # finally tpool_data is a list of tuples [(nw, average tpool(nw)), ..]
-tpool_data = sorted([(tpool_data[i][0], np.average(tpool_data[i][1])) for i in range(len(tpool_data))], key=lambda x: x[0])
+tpool_data = sorted([(tpool_data[i][0], int(np.average(tpool_data[i][1]))) for i in range(len(tpool_data))], key=lambda x: x[0])
 
 
 # **************************************************************************
@@ -120,15 +120,18 @@ for k, v in tff_data:
 tff_data = list(d.items())
 
 # finally tff_data is a list of tuples [(nw, average tff(nw)), ..]
-tff_data = sorted([(tff_data[i][0], np.average(tff_data[i][1])) for i in range(len(tff_data))], key=lambda x: x[0])
+tff_data = sorted([(tff_data[i][0], int(np.average(tff_data[i][1]))) for i in range(len(tff_data))], key=lambda x: x[0])
 
 
 # before plotting store ideal parallel times:
 nw_list = [tff_data[i][0] for i in range(len(tff_data))]
 
-tideal_data = sorted([(nw_list[i], tseq_data/nw_list[i]) for i in range(len(nw_list))], key=lambda x: x[0])
+tideal_data = sorted([(nw_list[i], int(tseq_data/nw_list[i])) for i in range(len(nw_list))], key=lambda x: x[0])
 
+# some printings, just in case
+print(tseq_data)
 print(tpar_data)
+print(tpool_data)
 print(tff_data)
 print(tideal_data)
 

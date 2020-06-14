@@ -24,7 +24,7 @@ public:
                    , fit_fun(f)
                    {};
 
-  void run(); 
+  void run();
 
   // returns the current optimum value
   std::pair<Fitness_Fun_tout, Chromosome_t> get_current_optimum();

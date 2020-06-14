@@ -19,7 +19,7 @@ public:
                            : num_workers(nw)
                            , chunks_size(pop_s/nw)
                            , curr_glob_opt_idx(0)
-                           , my_pool(nw)
+                           , my_pool(nw) // the pool call its method start() here!
                            , Genetic_Algorithm(max_its, pop_s, chromo_s,f)
 
   {
