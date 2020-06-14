@@ -11,7 +11,8 @@ chromo_size=100
 # p is used to iterate over the powers of two that are used as increasing parallel degree
 # i is used to iterate over the number of experiments
 p=0
-pmax=2
+pmax=3
+#pmax=8 
 i=0
 num_exp=10
 
@@ -22,6 +23,7 @@ echo "Every run is on an instance of genetic tsp with: "$max_epochs" max epochs,
 echo -e "\nRunning SEQ part..."
 while [ "$i" -lt "$num_exp" ];
 do
+  echo "i = "$i""
   ./build/seq "$max_epochs" "$pop_size" "$chromo_size" >> ./results/t_seq.data
   i=$(( i + 1 ))
 done
@@ -30,9 +32,11 @@ i=0
 echo "Running PAR part..."
 while [ "$i" -lt "$num_exp" ];
 do
+  echo "i = "$i""
   p=0
   while [ "$p" -le "$pmax" ];
   do
+    echo "  p = "$p""
     ./build/par $((2**p)) "$max_epochs" "$pop_size" "$chromo_size" >> ./results/t_par.data
     p=$(( p + 1 ))
   done
@@ -43,9 +47,11 @@ i=0
 echo "Running POOL part..."
 while [ "$i" -lt "$num_exp" ];
 do
+  echo "i = "$i""
   p=0
   while [ "$p" -le "$pmax" ];
   do
+    echo "  p = "$p""
     ./build/pool $((2**p)) "$max_epochs" "$pop_size" "$chromo_size" >> ./results/t_pool.data
     p=$(( p + 1 ))
   done
@@ -53,13 +59,14 @@ do
 done
 
 i=0
-
 echo "Running FF part..."
 while [ "$i" -lt "$num_exp" ];
 do
+  echo "i = "$i""
   p=0
   while [ "$p" -le "$pmax" ];
   do
+    echo "  p = "$p""
     ./build/ff $((2**p)) "$max_epochs" "$pop_size" "$chromo_size" >> ./results/t_ff.data
     p=$(( p + 1 ))
   done

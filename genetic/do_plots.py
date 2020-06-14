@@ -5,12 +5,13 @@ import sys
 from collections import defaultdict
 
 # if u wanna test local results
-res_directory = './results/'
+# res_directory = './results/'
 
-# many agents
-# res_directory = './results-remote/xeon-results-10-1000-10000/'
-# many cities
-# res_directory = './results-remote/xeon-results-10-10000-1000/'
+# many cities (more complex single computation i.e: large graphs)
+res_directory = './results-remote/xeon-results-10-1024-10000/'
+
+# many chromosomes (less complex single computation i.e: less large graphs but more tasks subdivision)
+# res_directory = './results-remote/xeon-results-10-16384-1000/'
 
 
 def speedup(tseq, tpar):
