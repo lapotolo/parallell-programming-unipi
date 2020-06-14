@@ -15,11 +15,11 @@ pmax=2
 i=0
 num_exp=10
 
-echo "Running script to compute t_seq, t_par(nw), t_ff(nw) for nw in the range [1, 2, 4, 8, .. , 128]"
-echo "Every run is on an instance of generic tsp with: "$max_epochs" max epochs, "$pop_size" number of individuals, "$chromo_size" chromosome size/cities."
+echo "Running script to compute t_seq, t_par(nw), t_pool(nw), t_ff(nw) for nw in the range [1, 2, 4, 8, .. , ub] where ub is up to you."
+echo "Every run is on an instance of genetic tsp with: "$max_epochs" max epochs, "$pop_size" number of chromosomes, "$chromo_size" chromosome size/cities."
 
 
-echo -e "\nSEQ part"
+echo -e "\nRunning SEQ part..."
 while [ "$i" -lt "$num_exp" ];
 do
   ./build/seq "$max_epochs" "$pop_size" "$chromo_size" >> ./results/t_seq.data
@@ -27,7 +27,7 @@ do
 done
 
 i=0
-echo "PAR part"
+echo "Running PAR part..."
 while [ "$i" -lt "$num_exp" ];
 do
   p=0
@@ -40,8 +40,21 @@ do
 done
 
 i=0
+echo "Running POOL part..."
+while [ "$i" -lt "$num_exp" ];
+do
+  p=0
+  while [ "$p" -le "$pmax" ];
+  do
+    ./build/pool $((2**p)) "$max_epochs" "$pop_size" "$chromo_size" >> ./results/t_pool.data
+    p=$(( p + 1 ))
+  done
+  i=$(( i + 1 ))
+done
 
-echo "FF part"
+i=0
+
+echo "Running FF part..."
 while [ "$i" -lt "$num_exp" ];
 do
   p=0
@@ -52,3 +65,5 @@ do
   done
   i=$(( i + 1 ))
 done
+
+echo "Done."

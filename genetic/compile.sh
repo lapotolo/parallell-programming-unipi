@@ -12,8 +12,11 @@ export FF_ROOT=./include
 echo "Sequential version compilation took:"
 time g++ -O3 -finline-functions -std=c++17 -o ./build/seq ./src/genetic_tsp_seq.cpp
 
-echo "Parallel version (c++ threads) compilation took:"
+echo "Parallel version (c++ native threads) compilation took:"
 time g++ -O3 -finline-functions -std=c++17 -pthread -o ./build/par ./src/genetic_tsp_par.cpp
+
+echo "Parallel version with threads pool (c++ native threads) compilation took:"
+time g++ -O3 -finline-functions -std=c++17 -pthread -o ./build/pool ./src/genetic_tsp_pool.cpp
 
 echo "Parallel version (FastFlow) compilation took:"
 time g++ -O3 -finline-functions -std=c++17 -pthread -I$FF_ROOT -o ./build/ff ./src/genetic_tsp_ff.cpp

@@ -1,25 +1,26 @@
-#ifndef GENETIC_TSP_PAR_H
-#define GENETIC_TSP_PAR_H
+#ifndef GENETIC_TSP_PAR_POOL_H
+#define GENETIC_TSP_PAR_POOL_H
 
 #include "genetic.hpp"
-//#include "thread_pool.hpp"
+#include "pool.hpp"
 
 #include <thread>
 
-class Genetic_TSP_Parallel : Genetic_Algorithm<std::vector<std::vector<int>>, std::vector<int>, int32_t>
+class Genetic_TSP_Parallel_Pool : Genetic_Algorithm<std::vector<std::vector<int>>, std::vector<int>, int32_t>
 {
 public:
   // constructor. First generation is composed of random (feasible) chromosomes
-  Genetic_TSP_Parallel( size_t nw
-                      , size_t max_its  
-                      , size_t pop_s // chromosome number
-                      , size_t chromo_s
-                      , std::function<int32_t(std::vector<int> const&)> f
-                      )
-                      : num_workers(nw)
-                      , chunks_size(pop_s/nw)
-                      , curr_glob_opt_idx(0)
-                      , Genetic_Algorithm(max_its, pop_s, chromo_s,f)
+  Genetic_TSP_Parallel_Pool( size_t nw
+                           , size_t max_its  
+                           , size_t pop_s // chromosome number
+                           , size_t chromo_s
+                           , std::function<int32_t(std::vector<int> const&)> f
+                           )
+                           : num_workers(nw)
+                           , chunks_size(pop_s/nw)
+                           , curr_glob_opt_idx(0)
+                           , my_pool(nw)
+                           , Genetic_Algorithm(max_its, pop_s, chromo_s,f)
 
   {
     init_population();
@@ -46,7 +47,9 @@ private:
   size_t chunks_size; // number of chromosome that each worker have to deal with
   size_t curr_glob_opt_idx; // index of the global optimum in the current population
 
+  Thread_Pool my_pool;
   std::vector<std::pair<size_t, size_t>> ranges;
+
 
 
   void init_population()
@@ -73,88 +76,33 @@ private:
   void next_generation()
   {
     size_t i;
-    // PARALLEL FORK/JOIN MODEL TO APPLY CROSSOVERS TO CHROMOSOMES
-    for(i = 0; i < num_workers; ++i)
-      workers.push_back(std::move(std::thread( &Genetic_TSP_Parallel::crossover
-                                             , this
-                                             , ranges[i].first
-                                             , ranges[i].second)));  // FORK num_workers threads
-    for(auto & thr : workers)
-      thr.join(); // JOIN: u cant proceed in the computation unless every spawned thread completed its task
-    workers.clear();
-    // **************************************************************************************
+    size_t completed_count = 0;
+    std::vector<std::future<int>> compl_task;
+    compl_task.reserve(num_workers);
 
-    // PARALLEL FORK/JOIN MODEL TO APPLY MUTATION TO CHROMOSOMES
     for(i = 0; i < num_workers; ++i)
-      workers.push_back(std::move(std::thread( &Genetic_TSP_Parallel::mutate
-                                             , this
-                                             , ranges[i].first
-                                             , ranges[i].second)));  // FORK num_workers threads
-    for(auto & thr : workers)
-      thr.join(); // JOIN
-    workers.clear();
-    // **************************************************************************************
-    // PARALLEL FORK/JOIN MODEL FOR CHROMOSOMES FITNESS EVALUATION
-    for(i = 0; i < num_workers; ++i)
-      workers.push_back(std::move(std::thread( &Genetic_TSP_Parallel::evaluate_population
-                                             , this
-                                             , ranges[i].first
-                                             , ranges[i].second)));  // FORK num_workers threads
-    for(auto & thr : workers)
-      thr.join(); // JOIN
-    workers.clear();
-    // **************************************************************************************
+      compl_task.push_back(my_pool.enqueue([&]
+        {
+          crossover(ranges[i].first, ranges[i].second);
+          mutate(ranges[i].first, ranges[i].second);
+          evaluate_population(ranges[i].first, ranges[i].second);
+          return 1;
+        }));
+
+    // this guy is gonna use lot of power :(
+    while(completed_count < num_workers)
+    {
+      completed_count = 0;
+      for(i = 0; i < num_workers; ++i)
+      {
+        completed_count += compl_task[i].get();
+      }
+    }
+    // std::cout<<"completed_count = " << completed_count << "\n";
 
     // SELECTION PHASE
     selection(0, population_size);
     // **************************************************************************************
-  }
-
-  void evaluate_population(size_t const& chunk_s, size_t const& chunk_e)
-  {
-    size_t i;
-
-    for(i=chunk_s; i < chunk_e; ++i)
-    { // putting emplace_back here instead on assignment operator yields a "double free or corruption (!prev)"
-      chromosomes_fitness[i] = fit_fun(population[i]); // O(m) part
-    }
-  }
-
-  void selection(size_t const& chunk_s, size_t const& chunk_e)
-  {
-    size_t i;
-    auto curr_gen_min_idx = chunk_s;
-    auto curr_gen_max_idx = chunk_s;
-
-    auto curr_gen_min_val = current_optimum.first;
-    auto curr_gen_max_val = curr_gen_min_val;
-    for(i=chunk_s; i < chunk_e; ++i)
-    {
-      // check if we have a new minimum for the current generation 
-      if(chromosomes_fitness[i] < curr_gen_min_val)
-      {
-        curr_gen_min_idx = i;
-        curr_gen_min_val = chromosomes_fitness[i];
-      }
-      // check if we have a new maximum for the current generation 
-      else if(chromosomes_fitness[i] > curr_gen_max_val)
-      {
-        curr_gen_max_idx = i;
-        curr_gen_max_val = chromosomes_fitness[i];
-      }
-    }
-    // if in this generation we found a new optimum
-    // then we record it in the proper a class field
-    if(curr_gen_min_val < current_optimum.first)
-    {
-      current_optimum = std::make_pair(curr_gen_min_val, population[curr_gen_min_idx]);
-      curr_glob_opt_idx = curr_gen_min_idx;
-    }
-    // inject the global optimum from previous generations in the current generation
-    // in place of the worst chromosome of the current generation    
-    chromosomes_fitness[curr_gen_max_idx] = current_optimum.first;
-    population[curr_gen_max_idx]          = current_optimum.second;
-    curr_glob_opt_idx                     = curr_gen_max_idx;
   }
 
   void crossover(size_t const& chunk_s, size_t const& chunk_e) // recall, index chunk_e is not in the computed interval
@@ -231,6 +179,54 @@ private:
       if( i != curr_glob_opt_idx and biased_coin(gen))
         std::swap(population[i][idx_distr(gen)], population[i][idx_distr(gen)]); // thread safe?
   }
+
+  void evaluate_population(size_t const& chunk_s, size_t const& chunk_e)
+  {
+    size_t i;
+
+    for(i=chunk_s; i < chunk_e; ++i)
+    { // putting emplace_back here instead on assignment operator yields a "double free or corruption (!prev)"
+      chromosomes_fitness[i] = fit_fun(population[i]); // O(m) part
+    }
+  }
+
+  void selection(size_t const& chunk_s, size_t const& chunk_e)
+  {
+    size_t i;
+    auto curr_gen_min_idx = chunk_s;
+    auto curr_gen_max_idx = chunk_s;
+
+    auto curr_gen_min_val = current_optimum.first;
+    auto curr_gen_max_val = curr_gen_min_val;
+    for(i=chunk_s; i < chunk_e; ++i)
+    {
+      // check if we have a new minimum for the current generation 
+      if(chromosomes_fitness[i] < curr_gen_min_val)
+      {
+        curr_gen_min_idx = i;
+        curr_gen_min_val = chromosomes_fitness[i];
+      }
+      // check if we have a new maximum for the current generation 
+      else if(chromosomes_fitness[i] > curr_gen_max_val)
+      {
+        curr_gen_max_idx = i;
+        curr_gen_max_val = chromosomes_fitness[i];
+      }
+    }
+    // if in this generation we found a new optimum
+    // then we record it in the proper a class field
+    if(curr_gen_min_val < current_optimum.first)
+    {
+      current_optimum = std::make_pair(curr_gen_min_val, population[curr_gen_min_idx]);
+      curr_glob_opt_idx = curr_gen_min_idx;
+    }
+    // inject the global optimum from previous generations in the current generation
+    // in place of the worst chromosome of the current generation    
+    chromosomes_fitness[curr_gen_max_idx] = current_optimum.first;
+    population[curr_gen_max_idx]          = current_optimum.second;
+    curr_glob_opt_idx                     = curr_gen_max_idx;
+  }
+
 
 };
 

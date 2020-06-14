@@ -1,11 +1,11 @@
-#include "../include/genetic_tsp_par.hpp"
+#include "../include/genetic_tsp_pool.hpp"
 #include "../include/tsp_graph.hpp"
 
 int main(int argc, char const *argv[])
 {
 	if(argc != 1+4) // nw, niter, pop_size, chromo_size, cross_prob, mutate_prob
   {
-		std::cout << "Parallel (naive forks/joins version) Genetic TSP Usage is: <number_of_workers> <max_epochs> <population_size> <chromosome_size>\nShutting down.\n";
+		std::cout << "Parallel (thread pool version) Genetic TSP Usage is: <number_of_workers> <max_epochs> <population_size> <chromosome_size>\nShutting down.\n";
 		return -1;
 	}
 
@@ -34,12 +34,12 @@ int main(int argc, char const *argv[])
                         return tour_cost;
                       };
 
-  Genetic_TSP_Parallel test( nw
-                           , max_epochs
-                           , pop_size 
-                           , chromo_size
-                           , fit_funct
-                           );
+  Genetic_TSP_Parallel_Pool test( nw
+                                , max_epochs
+                                , pop_size 
+                                , chromo_size
+                                , fit_funct
+                                );
 
   // Parallel EXECUTION
   auto start = std::chrono::high_resolution_clock::now();
@@ -62,7 +62,7 @@ int main(int argc, char const *argv[])
                + (std::to_string(chromo_size))
                + "-cities-"
                + (std::to_string(nw))
-               +"-nw_par.data"
+               +"-nw_pool.data"
                , std::ios::app);
   out_file << usec << "\n";
   out_file.close();
@@ -72,7 +72,7 @@ int main(int argc, char const *argv[])
   //std::cout<<"glob opt tour= [ ";
   //for(auto e : test.get_current_optimum().second) std::cout<< e << " ";
   //std::cout<<"]\n";
-  std::cout << "t_par("<<nw<<")=" << usec << "\n";
+  std::cout << "t_pool("<<nw<<")=" << usec << "\n";
   
   return 0;
 }
