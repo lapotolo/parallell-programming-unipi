@@ -261,7 +261,7 @@ void TSP_Worker::mutate(TSP_Task & task)
       std::swap((*pointer_pack.pop)[i][idx_distr(gen)], (*pointer_pack.pop)[i][idx_distr(gen)]); // thread safe?
 }
 
-// TO CHECK!
+// OK
 TSP_Task* TSP_Worker::evaluate_population(TSP_Task & task)
 {
   size_t i;
@@ -291,7 +291,7 @@ TSP_Task* TSP_Worker::evaluate_population(TSP_Task & task)
   return new TSP_Task{sub_pop_min_idx, sub_pop_max_idx, task.ptrs};
 }
 
-// CHECK!
+// OK
 TSP_Task* TSP_Worker::svc(TSP_Task* tsp_task)
 {
   TSP_Task &t = *tsp_task;

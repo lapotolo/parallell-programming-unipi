@@ -15,7 +15,9 @@
 \BOOKMARK [2][-]{subsection.5.2}{Ideal Parallel performances}{section.5}% 15
 \BOOKMARK [1][-]{section.6}{Parallel implementations: structure and details}{}% 16
 \BOOKMARK [2][-]{subsection.6.1}{Naive C++ thread implementation}{section.6}% 17
-\BOOKMARK [2][-]{subsection.6.2}{Threads pool C++ implementation}{section.6}% 18
+\BOOKMARK [2][-]{subsection.6.2}{Thread pool C++ implementation}{section.6}% 18
 \BOOKMARK [2][-]{subsection.6.3}{FastFlow implementation}{section.6}% 19
 \BOOKMARK [1][-]{section.7}{Experimental validation}{}% 20
-\BOOKMARK [1][-]{section.8}{Conclusions and final remarks}{}% 21
+\BOOKMARK [2][-]{subsection.7.1}{Experiments details}{section.7}% 21
+\BOOKMARK [2][-]{subsection.7.2}{Completion time}{section.7}% 22
+\BOOKMARK [2][-]{subsection.7.3}{Plots of performance measures}{section.7}% 23

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/Debian) (preloaded format=pdflatex 2018.10.11)  14 JUN 2020 23:21
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/Debian) (preloaded format=pdflatex 2018.10.11)  15 JUN 2020 03:26
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -826,13 +826,13 @@ File: ot1pcr.fd 2001/06/04 font definitions for OT1/pcr.
 )
 LaTeX Font Info:    Font shape `OT1/ppl/bx/n' in size <14.4> not available
 (Font)              Font shape `OT1/ppl/b/n' tried instead on input line 59.
-LaTeX Font Info:    Try loading font information for OMS+ppl on input line 69.
+LaTeX Font Info:    Try loading font information for OMS+ppl on input line 68.
 
 (/usr/share/texlive/texmf-dist/tex/latex/psnfss/omsppl.fd
 File: omsppl.fd 
 )
 LaTeX Font Info:    Font shape `OMS/ppl/m/n' in size <10.95> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 69.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 68.
 
 (/usr/share/texlive/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2015/06/04 1.6 listings language file
@@ -846,58 +846,105 @@ File: lstmisc.sty 2015/06/04 1.6 (Carsten Heinz)
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
 LaTeX Font Info:    Font shape `OT1/ppl/bx/n' in size <12> not available
-(Font)              Font shape `OT1/ppl/b/n' tried instead on input line 85.
+(Font)              Font shape `OT1/ppl/b/n' tried instead on input line 84.
 
-Overfull \hbox (3.43196pt too wide) in paragraph at lines 86--87
-\OT1/ppl/m/n/10.95 scraped from the web, we de-vel-oped a lit-tle class [][][][
-][][] in the mod-ule $\OML/cmm/m/it/10.95 tsp[]graph:hpp$
+Overfull \hbox (17.20749pt too wide) in paragraph at lines 85--86
+\OT1/ppl/m/n/10.95 scraped from the web, we de-vel-oped a class [][][][][][], d
+e-fined in the header $\OML/cmm/m/it/10.95 tsp[]graph:hpp$
  []
 
 
-Overfull \hbox (53.30064pt too wide) in paragraph at lines 89--91
+Overfull \hbox (53.30064pt too wide) in paragraph at lines 88--90
 \OT1/ppl/m/n/10.95 We de-cided to rep-re-sent the pop-u-la-tion of chro-mo-some
 s as a [][][][][][]
  []
 
-[2] [3]
-Underfull \hbox (badness 10000) in paragraph at lines 119--120
 
+Overfull \hbox (5.67044pt too wide) in paragraph at lines 88--90
+\OT1/ppl/m/n/10.95 some is a nat-u-ral num-ber $\OMS/cmsy/m/n/10.95 2 \OT1/cmr/
+m/n/10.95 [0\OML/cmm/m/it/10.95 ; chromosome[]size\OT1/cmr/m/n/10.95 ]$\OT1/ppl
+/m/n/10.95 , where the up-per bound $\OML/cmm/m/it/10.95 chromosome[]size$
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 121--122
-
+Overfull \hbox (15.91019pt too wide) in paragraph at lines 88--90
+\OT1/ppl/m/n/10.95 is one of the pa-ram-e-ters used by the con-struc-tor of [][
+][][][][]. $\OML/cmm/m/it/10.95 chromosome[]size$
  []
 
-[4]
-Underfull \hbox (badness 10000) in paragraph at lines 150--152
-
- []
-
-
-Overfull \hbox (38.50537pt too wide) detected at line 172
+[2] [3] [4]
+Overfull \hbox (38.50537pt too wide) detected at line 167
 []
  []
 
 [5]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 191.
- [6]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 191.
+Overfull \hbox (5.0757pt too wide) in paragraph at lines 179--184
+\OT1/ppl/m/n/10.95 The two c++ threads im-ple-men-ta-tions dif-fer only on how 
+they man-age the work-ers' threads.
+ []
+
+[6]
+LaTeX Font Info:    Font shape `OT1/ppl/bx/n' in size <10.95> not available
+(Font)              Font shape `OT1/ppl/b/n' tried instead on input line 204.
+ [7]
+Overfull \hbox (46.21819pt too wide) in paragraph at lines 214--227
+ [] 
+ []
+
+<plots/SPEEDUP-10-1024-10000.png, id=144, 1387.584pt x 736.4313pt>
+File: plots/SPEEDUP-10-1024-10000.png Graphic file (type png)
+<use plots/SPEEDUP-10-1024-10000.png>
+Package pdftex.def Info: plots/SPEEDUP-10-1024-10000.png  used on input line 23
+8.
+(pdftex.def)             Requested size: 433.62pt x 230.13422pt.
+
+Package caption Warning: The option `hypcap=true' will be ignored for this
+(caption)                particular \caption on input line 239.
+See the caption package documentation for explanation.
+
+[8]
+<plots/SCALAB-10-1024-10000.png, id=152, 1387.584pt x 736.4313pt>
+File: plots/SCALAB-10-1024-10000.png Graphic file (type png)
+<use plots/SCALAB-10-1024-10000.png>
+Package pdftex.def Info: plots/SCALAB-10-1024-10000.png  used on input line 246
+.
+(pdftex.def)             Requested size: 433.62pt x 230.13422pt.
+
+
+Package caption Warning: The option `hypcap=true' will be ignored for this
+(caption)                particular \caption on input line 247.
+See the caption package documentation for explanation.
+
+<plots/EFFI-10-1024-10000.png, id=153, 1387.584pt x 736.4313pt>
+File: plots/EFFI-10-1024-10000.png Graphic file (type png)
+<use plots/EFFI-10-1024-10000.png>
+Package pdftex.def Info: plots/EFFI-10-1024-10000.png  used on input line 254.
+(pdftex.def)             Requested size: 433.62pt x 230.13422pt.
+
+Package caption Warning: The option `hypcap=true' will be ignored for this
+(caption)                particular \caption on input line 255.
+See the caption package documentation for explanation.
+
+[9 <./plots/SPEEDUP-10-1024-10000.png> <./plots/SCALAB-10-1024-10000.png>]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 269.
+
+[10 <./plots/EFFI-10-1024-10000.png>]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 269.
  (./main.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 191.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 191.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 269.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 269.
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 16233781BFD46202ACF17DAFA665F686;1433.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 191.
+(rerunfilecheck)             Checksum: 43D12A3ECFAFFBFF6746C7008C485048;1580.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 269.
  ) 
 Here is how much of TeX's memory you used:
- 11082 strings out of 492982
- 158027 string characters out of 6134895
- 271935 words of memory out of 5000000
- 14446 multiletter control sequences out of 15000+600000
- 17428 words of font info for 55 fonts, out of 8000000 for 9000
+ 11140 strings out of 492982
+ 159055 string characters out of 6134895
+ 272876 words of memory out of 5000000
+ 14488 multiletter control sequences out of 15000+600000
+ 18417 words of font info for 57 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 49i,9n,62p,947b,1196s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 49i,11n,62p,949b,1196s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/share/texliv
 e/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texm
 f-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist
@@ -909,10 +956,10 @@ sfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts
 s/msbm10.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb>
 </usr/share/texlive/texmf-dist/fonts/type1/urw/palatino/uplb8a.pfb></usr/share/
 texlive/texmf-dist/fonts/type1/urw/palatino/uplr8a.pfb>
-Output written on main.pdf (6 pages, 139574 bytes).
+Output written on main.pdf (10 pages, 364703 bytes).
 PDF statistics:
- 177 PDF objects out of 1000 (max. 8388607)
- 156 compressed objects within 2 object streams
- 34 named destinations out of 1000 (max. 500000)
- 169 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 218 PDF objects out of 1000 (max. 8388607)
+ 187 compressed objects within 2 object streams
+ 44 named destinations out of 1000 (max. 500000)
+ 200 words of extra memory for PDF output out of 10000 (max. 10000000)
 

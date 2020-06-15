@@ -8,10 +8,10 @@ from collections import defaultdict
 # res_directory = './results/'
 
 # many cities (more complex single computation i.e: large graphs)
-# res_directory = './results-remote/xeon-results-10-1024-10000/'
+res_directory = './results-remote/xeon-results-10-1024-10000/'
 
 # many chromosomes (less complex single computation i.e: less large graphs but more tasks subdivision)
-res_directory = './results-remote/xeon-results-10-16384-1000/'
+# res_directory = './results-remote/xeon-results-10-16384-1000/'
 
 
 def speedup(tseq, tpar):
