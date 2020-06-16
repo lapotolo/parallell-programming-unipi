@@ -179,7 +179,7 @@ y = [scalability(y[0], y[i]) for i in range(len(y))]
 plt.axis([1, max(x), 0, max(y)*2])
 plt.plot(x, y, marker='x', label='c++ threads')
 # pool
-x,y = zip(*tpar_data)
+x,y = zip(*tpool_data)
 plt.xticks(x)
 y = [scalability(y[0], y[i]) for i in range(len(y))]
 plt.axis([1, max(x), 0, max(y)*2])

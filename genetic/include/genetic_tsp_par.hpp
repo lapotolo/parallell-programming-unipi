@@ -81,10 +81,10 @@ private:
                                              , ranges[i].second)));  // FORK num_workers threads
     for(auto & thr : workers)
       thr.join(); // JOIN: u cant proceed in the computation unless every spawned thread completed its task
-    workers.clear();
+        workers.clear();
     // **************************************************************************************
-
     // PARALLEL FORK/JOIN MODEL TO APPLY MUTATION TO CHROMOSOMES
+    auto start_mut = std::chrono::high_resolution_clock::now();
     for(i = 0; i < num_workers; ++i)
       workers.push_back(std::move(std::thread( &Genetic_TSP_Parallel::mutate
                                              , this
@@ -104,7 +104,6 @@ private:
       thr.join(); // JOIN
     workers.clear();
     // **************************************************************************************
-
     // SELECTION PHASE
     selection(0, population_size);
     // **************************************************************************************

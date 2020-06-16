@@ -119,15 +119,16 @@ Now that all the basic steps that need to be performed by the algorithm were lay
 If we look at a single iteration of the algorithm we will see that the subtask of performing a mutation, a crossover and a fitness evaluation on a subgroup of chromosomes is independent from the task of performing the same operations on a different subgroup of chromosomes.\\
 Indeed, when we look at the single iteration, the computations here involved are embarassingly parallel. This is implied by the fact that it is just required to split the single-iteration-task: "manipulate the current population and evaluate it" in many equally sized subtasks and then give each subtask to a worker.\\
 Note that we are not yet taking into account the $ selection $ part of the algorithm.
-If we choose to parallelize this part too we will introduce the classical overhead present in data parallel computations that is the one associated to the time spent in merging the subresults coming from the subtasks. Otherwise by choosing to let a single thread perform all alone the selection task we introduce some form of overhead in the time we have to wait for all the subtasks becomes completed before starting doing selection. Moreover this single "selecting-worker" will have to deal with a larger chunk of data.
-Summarizing the introduction of parallelism in the implementation of genetic tsp aims to reduce the latency of the task corresponding to a single iteration of the whole genetic algorithm.
+If we choose to parallelize this part too we will introduce the classical overhead present in data parallel computations that is the one associated to the time spent in merging the subresults coming from the subtasks. Otherwise by choosing to let a single thread perform all alone the selection task, we introduce some form of "overhead" in the time we have to wait for all the subtasks being completed before starting doing selection. Moreover this single "selecting-worker" will have to deal with a larger chunk of data.
+Summarizing, the introduction of parallelism in the implementation of genetic tsp aims to reduce the latency of the task corresponding to a single iteration of the whole genetic algorithm.
+
 
 \section{Performance modelling}
-Having described the sequential version of the algorithm and having presented a tentative design for the parallel implementations, we paved the way to produce some assessment about the performances of the model.
+Having described the sequential version of the algorithm and having presented a tentative design for the parallel implementations, we paved the way to produce some assessment	 about the performances of the model.
 \subsection{In theory}
 Let $ n = population\_size$ , $m=chromosome\_size$, $ I = max\_epochs $, then we can state:
 \[t_{seq} = I * (t_{cro} + t_{mut} + t_{fit} + t_{sel}) \]
-where $ t_{cro}$, $ t_{mut}$, $t_{fit}$, $t_{sel}$ are respectively the time spent in performing crossovers, mutations, population evaluations and selections.
+where $ t_{cro}$, $ t_{mut}$, $t_{fit}$, $t_{sel}$ are respectively the time spent in performing crossovers, mutations, population evaluations and selections. Then we bound time complexities of the steps of the algorithm as:
 \\ \medskip
 \begin{itemize}
 	\item $ t_{cro} \approx \mathcal{O}(m) * \mathcal{O}(n) \approx \mathcal{O}(m*n) $
@@ -136,25 +137,23 @@ where $ t_{cro}$, $ t_{mut}$, $t_{fit}$, $t_{sel}$ are respectively the time spe
 	\item $ t_{sel} \approx \mathcal{O}(n)$
 \end{itemize}
 Glueing pieces together, we obtain
-
 \begin{align*}
 t_{seq} &= I * (t_{cro} + t_{mut} + t_{fit} + t_{sel}) \\
 & \approx I * ((\mathcal{O}(m*n) + \mathcal{O}(n) + \mathcal{O}(m*n)) + \mathcal{O}(n))\\
 & \approx I * (\mathcal{O}(m*n) + \mathcal{O}(n)) \\
-& \approx I * \mathcal{O}(m*n) \\
-& \approx \mathcal{O}(m*n)\\
+& \approx I * \mathcal{O}(m*n) \approx \mathcal{O}(m*n)\\
 \end{align*}
 With the last $ \approx $ coming from the fact that $ I $ is usually orders of magnitude less then both $ m $ and $ n $. \\
 Recalling that we will deploy parallelism only for crossovers, mutations and evaluation,
 what we are trying to enlight with this reasoning is that even if we chose to not parallelize the selection phase the performance loss should remain negligible since its computational complexity is cancelled by the complexity of the three previous tasks.
 
-\subsection{Ideal Parallel performances}
+\subsubsection{Ideal Parallel performances}
 Following everything we stated so far about
 \begin{itemize}
   \item the points from where the problem of parallelizing our sequential algorithm can be attacked;
   \item  $ t_{cro}$, $ t_{mut}$, $t_{fit}$, $t_{sel}$ theoretical time complexities;
 \end{itemize} 
-Then assuming that $ p $ is the number of workers at disposal for our parallel computation, we can define the ideal parallel time:
+Then, assuming that $ p $ is the number of workers at disposal for our parallel computation, we can define the ideal parallel time:
 \[ t_{par\_ideal} = \frac{t_{seq}}{p} \]
 and we will use it as benchmark for our experimental results.\\
 We define the ideal $ speedup $, the ideal $ scalability $ and the ideal efficiency using the definition of such measures and our definition of $ t_{par\_ideal} $:
@@ -166,19 +165,32 @@ s(p) = \frac{t_{seq}}{t_{par}(p)} = \frac{t_{seq}}{t_{seq}/p} = p
 & \varepsilon(p) = \frac{t_{seq}}{p*t_{par}(p)} = \frac{t_{seq}}{p*t_{seq}/p} = 1 
 \end{align*}
 
+\subsection{In practice.. Overheads}
+A world where these ideal assumptions hold is just an utopy. Indeed we know both from theory and real life cases that parallel computations comes with overheads. To defend our choices of what to and what to not parallelize we measured the time taken by each step of an iteration of the algorithm in the sequential version:
+\begin{table}[h]
+	\begin{center}
+	  \begin{tabular}{||c | c | c | c||}
+	  \multicolumn{4}{||c||}{Sequential implementation} \\ \hline
+	  $ t\_cro $ & $ t\_mut $  & $t\_fit$ & $t\_sel $  \\ \hline
+	  165143&265&1480653&15 \\ \hline
+	  \end{tabular}
+	\captionof{table}{Results of a sequential run on an instance with $ max\_epochs =10 $, $ population\_size=1024 $, $chromosome\_size=10000$. Reported times are in microseconds and each number is an average of 10 runs.} 
+	\end{center}
+\end{table}
+
+Since forking/joining a single thread takes a fraction of time in the range [500, 800] microseconds (CPU Xeon Phi KNC, 64 physical cores), it would not be convenient to a adopt a parallel solution and so the choice we made seems exact.
+
 
 
 \section{Parallel implementations: structure and details}
-We provide three parallel implementation of the algorithm. Each one is implemented in C++17. Two rely on native C++ threads while the third one exploits the FastFlow framework. The implementations are thought to avoid race conditions between workers dealing with different parts of the algorithm data. This let us avoid the explicit use of locks and any other special synchronization mechanism except for the ones hidden behind the FastFlow front-end and the one used to manage the \inlinecode{C++}{condition_variable} used in the task queue needed by the thread pool.\\
+We provide three parallel implementations of the algorithm. Each one is implemented in C++17. Two rely on native C++ threads while the third one exploits the FastFlow framework. The implementations are thought to avoid race conditions between workers dealing with different parts of the algorithm data. This let us avoid the explicit use of locks and any other special synchronization mechanism except for the ones hidden behind the FastFlow front-end and the one used to manage the \inlinecode{C++}{condition_variable} used in the task queue exploited by the thread pool.\\
 Each implementation is available as an .hpp header file in the directory ./include.
 The directory ./src contains .cpp files that are the drivers of the relative .hpp files.
 To compile the project is enough to run the bash script $ compile.sh $ located in the root of the project folder. To run a default batch of experiments use the bash script $ run.sh $. More details on the directory structure of the project and on how to play with this piece of software can be find in $ README.md $ file.
 
 \subsection{Naive C++ thread implementation}
-Both the native c++ thread implementations realize a Map parallel pattern exploting the embarassingly parallel kind of computation that emerges from a single iterations subtask. These subtasks can be shaped as:
-\[ evaluate \circ mutate \circ crossover (population)\] 
-We could also look at the $ selection $ function as a Reduction even if in these two versions we preferred to leave this last task to a single worker and so any merge of subresults comes out.\\
-The only point in the program that needs a form of synchronization is the one preceeding the selection since we may need some kind of barrier to not let the main thread start the $ selection $ before every worker did not yet finish its subtask. Since every thread is joined just after having finished its task an implicit form of barrier comes out from the sequence of joins that are called and so no more code is needed.\\
+Both the native c++ thread implementations realize a Map parallel pattern exploting the embarassingly parallel kind of computation that emerges from a single iterations subtask. These subtasks can be shaped as: $  evaluate \circ mutate \circ crossover (population) $. \\
+We could also look at the $ selection $ function as a Reduction even if in these two versions we preferred to leave this last task to a single worker and so any merge of subresults comes out. The only point in the program that needs a form of synchronization is the one preceeding the selection since we may need some kind of barrier to not let the main thread start the $ selection $ before every worker did not yet finish its subtask. Since every thread is joined just after having finished its task an implicit form of barrier comes out from the sequence of joins that are called and so no more code is needed.\\
 The two c++ threads implementations differ only on how they manage the workers' threads. 
 The first and most naive one just add an \inlinecode{C++}{std::vector<thread>} as a class field and use it in the function that simulates a single iteration of the genetic algorithm, namely \inlinecode{C++}{next_generation()}. This function forks a thread for each worker and joins again these threads after they have completed their tasks. This becomes even worse since the series of forks/joins repeats three times every iteration of the whole algorithm. This naive implementation never uses two twice the same thread and indeed it loses much time in spawning new dumb threads only capable of performing one specific task.
 
@@ -227,32 +239,36 @@ As a first result we report in a table the completion times achieved by each pro
 	\end{center}
 \end{table}
 \smallskip
-From this first glimpse to raw data we can already see how completion time of the parallel naive implementation is the lowest up to a parallel degree of 16. After that the noise produced by such a large quantity of repeated creations and destructions of threads makes it underperforming. Viceversa the thread pool implementation takes a while to gain traction but in the end for the two highest tested parallel degrees (128, 256) it peaks among the other implementations. Last but not least FastFlow implementation shines for parallel degrees near and equal to the maximum number of physical cores of the testing machine (32, 64) and so it seems to suffer of excess parallelism/parallel slack.\\
+From this first glimpse to raw data we can already see how completion time of the parallel naive implementation is the lowest up to a parallel degree of 16. After that the noise produced by such a large quantity of repeated creations and destructions of threads makes it underperforming. Viceversa the thread pool implementation takes a while to gain traction but in the end for the two highest tested parallel degrees (128, 256) it peaks among the other implementations. Last but not least, FastFlow implementation shines for parallel degrees near and equal to the maximum number of physical cores of the testing machine (32, 64) and so it seems to suffer of excess parallelism/parallel slack.\\
 However the most important experimental fact to note is that experiments'results are in line with the ideal performance model up to a parallel degree of 32. After that point the costs of the overheads introduced to manage all the concurrent activities are no more negligible.
 
 \subsection{Plots of performance measures}
-We now plot the obtained result to give a clearer idea of the performances of our implementatios.
+We now plot the obtained result to give a clearer idea of the performances of our implementations.
 
 \begin{center}
 	\begin{minipage}{\textwidth}
 		\includegraphics[width=\linewidth]{plots/SPEEDUP-10-1024-10000.png}
-		\captionof{figure}{$s(p)$ of each implementations, $max\_epochs=10$, $population\_size=1024$, $chromosome\_size=10000$} 
+		\captionof{figure}{$s(p)$ of each implementation, $max\_epochs=10$, $population\_size=1024$, $chromosome\_size=10000$} 
 	\end{minipage}
 \end{center}
-This plot shows us that the thread pool implementation overall has the best speedup when the parallel degree becomes high. The FastFlow version insted is the closest to the ideal model for $ p \in [1,32] $. The naive implementation follows the FastFlow implementation up to $ p=32 $. Then it suddenly worsen because of its bad thread management.
+The plot shows us that the thread pool implementation has the best speedup overall when the parallel degree becomes high. The FastFlow version instead is the closest to the ideal model for $ p \in [1,32] $. The naive implementation follows the FastFlow implementation up to $ p=32 $. Then it suddenly worsen because of its bad thread management. \\
+
+
 
 \begin{center}
 	\begin{minipage}{\linewidth}
 		\includegraphics[width=\linewidth]{plots/SCALAB-10-1024-10000.png}
-		\captionof{figure}{$scalab(p)$ of each implementations, $max\_epochs=10$, $population\_size=1024$, $chromosome\_size=10000$} 
+		\captionof{figure}{$scalab(p)$ of each implementation, $max\_epochs=10$, $population\_size=1024$, $chromosome\_size=10000$} 
 	\end{minipage}
 \end{center}
-Here FastFlow shines with its scalability curve always above the one related to the two other parallel versions.
+Here the plot confirms what we previously observed in the data regarding completion times.
+Naive implementation scales well only with a few number of computing cores. FastFlow follows the ideal scalability up to 32 cores, then it keeps on scale but on a line that is almost flat. Instead the thread pool implementation after a starting section that is the less scaling it reveals to outscale the other two.
+
 
 \begin{center}
 	\begin{minipage}{\linewidth}
 		\includegraphics[width=\linewidth]{plots/EFFI-10-1024-10000.png}
-		\captionof{figure}{$\varepsilon(p)$ of each implementations, $max\_epochs=10$, $population\_size=1024$, $chromosome\_size=10000$} 
+		\captionof{figure}{$\varepsilon(p)$ of each implementation, $max\_epochs=10$, $population\_size=1024$, $chromosome\_size=10000$} 
 	\end{minipage}
 \end{center}
 Regarding efficiency we can see that the naive version is the most efficient for low values of $ p $ up to $ p=32 $. In the interval $ [32, 64] $ FastFlow dominates but in the next interval the thread pool implementation becomes the best one.
