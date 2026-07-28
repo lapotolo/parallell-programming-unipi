@@ -23,8 +23,7 @@ public:
 
   void run()
   {
-    size_t curr_epoch = 0;
-    while( curr_epoch++ < max_epochs)
+    for(size_t epoch = 0; epoch < max_epochs; ++epoch)
       next_generation();
   }
 
