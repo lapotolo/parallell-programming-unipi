@@ -18,10 +18,9 @@ public:
                       , size_t chromo_s
                       , std::function<Fitness(std::vector<int> const&)> f
                       )
-                      : num_workers(nw)
+                      : Genetic_Algorithm(max_its, pop_s, chromo_s, f)
+                      , num_workers(nw)
                       , curr_glob_opt_idx(0)
-                      , Genetic_Algorithm(max_its, pop_s, chromo_s,f)
-
   {
     init_population();
     chromosomes_fitness.resize(pop_s);
@@ -73,31 +72,30 @@ private:
     size_t i;
     // PARALLEL FORK/JOIN MODEL TO APPLY CROSSOVERS TO CHROMOSOMES
     for(i = 0; i < pair_ranges.size(); ++i)
-      workers.push_back(std::move(std::thread( &Genetic_TSP_Parallel::crossover
-                                             , this
-                                             , pair_ranges[i].first
-                                             , pair_ranges[i].second)));  // FORK crossover tasks
+      workers.emplace_back( &Genetic_TSP_Parallel::crossover
+                          , this
+                          , pair_ranges[i].first
+                          , pair_ranges[i].second);  // FORK crossover tasks
     for(auto & thr : workers)
       thr.join(); // JOIN: u cant proceed in the computation unless every spawned thread completed its task
         workers.clear();
     // **************************************************************************************
     // PARALLEL FORK/JOIN MODEL TO APPLY MUTATION TO CHROMOSOMES
-    auto start_mut = std::chrono::high_resolution_clock::now();
     for(i = 0; i < ranges.size(); ++i)
-      workers.push_back(std::move(std::thread( &Genetic_TSP_Parallel::mutate
-                                             , this
-                                             , ranges[i].first
-                                             , ranges[i].second)));  // FORK num_workers threads
+      workers.emplace_back( &Genetic_TSP_Parallel::mutate
+                          , this
+                          , ranges[i].first
+                          , ranges[i].second);  // FORK num_workers threads
     for(auto & thr : workers)
       thr.join(); // JOIN
     workers.clear();
     // **************************************************************************************
     // PARALLEL FORK/JOIN MODEL FOR CHROMOSOMES FITNESS EVALUATION
     for(i = 0; i < ranges.size(); ++i)
-      workers.push_back(std::move(std::thread( &Genetic_TSP_Parallel::evaluate_population
-                                             , this
-                                             , ranges[i].first
-                                             , ranges[i].second)));  // FORK num_workers threads
+      workers.emplace_back( &Genetic_TSP_Parallel::evaluate_population
+                          , this
+                          , ranges[i].first
+                          , ranges[i].second);  // FORK num_workers threads
     for(auto & thr : workers)
       thr.join(); // JOIN
     workers.clear();

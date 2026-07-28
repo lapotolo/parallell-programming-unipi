@@ -13,8 +13,8 @@ public:
                         , size_t chromo_s
                         , std::function<Fitness(std::vector<int> const&)> f
                         )
-                        : curr_glob_opt_idx(0)
-                        , Genetic_Algorithm(max_its, pop_s, chromo_s, f)
+                        : Genetic_Algorithm(max_its, pop_s, chromo_s, f)
+                        , curr_glob_opt_idx(0)
   {
     init_population();
     chromosomes_fitness.resize(pop_s);
