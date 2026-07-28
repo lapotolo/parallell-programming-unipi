@@ -2,6 +2,7 @@
 #define GENETIC_TSP_PAR_H
 
 #include "genetic.hpp"
+#include "partition.hpp"
 //#include "thread_pool.hpp"
 
 #include <thread>
@@ -17,7 +18,6 @@ public:
                       , std::function<int32_t(std::vector<int> const&)> f
                       )
                       : num_workers(nw)
-                      , chunks_size(pop_s/nw)
                       , curr_glob_opt_idx(0)
                       , Genetic_Algorithm(max_its, pop_s, chromo_s,f)
 
@@ -41,7 +41,6 @@ private:
   std::vector<std::thread> workers;
   
   size_t num_workers;
-  size_t chunks_size; // number of chromosome that each worker have to deal with
   size_t curr_glob_opt_idx; // index of the global optimum in the current population
 
   std::vector<std::pair<size_t, size_t>> ranges;
@@ -62,17 +61,15 @@ private:
 
   void init_ranges()
   {
-    // setup ranges to be given to the workers to work without data races
-    for(size_t i=0; i<num_workers; ++i)
-      ranges.push_back(std::make_pair( i*chunks_size
-                                     ,(i != (num_workers-1) ? (i+1)*chunks_size : population_size)));
+    // Half-open, non-overlapping ranges covering the complete population.
+    ranges = partition_evenly(population_size, num_workers);
   }
 
   void next_generation()
   {
     size_t i;
     // PARALLEL FORK/JOIN MODEL TO APPLY CROSSOVERS TO CHROMOSOMES
-    for(i = 0; i < num_workers; ++i)
+    for(i = 0; i < ranges.size(); ++i)
       workers.push_back(std::move(std::thread( &Genetic_TSP_Parallel::crossover
                                              , this
                                              , ranges[i].first
@@ -83,7 +80,7 @@ private:
     // **************************************************************************************
     // PARALLEL FORK/JOIN MODEL TO APPLY MUTATION TO CHROMOSOMES
     auto start_mut = std::chrono::high_resolution_clock::now();
-    for(i = 0; i < num_workers; ++i)
+    for(i = 0; i < ranges.size(); ++i)
       workers.push_back(std::move(std::thread( &Genetic_TSP_Parallel::mutate
                                              , this
                                              , ranges[i].first
@@ -93,7 +90,7 @@ private:
     workers.clear();
     // **************************************************************************************
     // PARALLEL FORK/JOIN MODEL FOR CHROMOSOMES FITNESS EVALUATION
-    for(i = 0; i < num_workers; ++i)
+    for(i = 0; i < ranges.size(); ++i)
       workers.push_back(std::move(std::thread( &Genetic_TSP_Parallel::evaluate_population
                                              , this
                                              , ranges[i].first

@@ -7,6 +7,7 @@
 #include <ff/parallel_for.hpp>
 #include <ff/pipeline.hpp>
 #include <ff/farm.hpp>
+#include "partition.hpp"
 
 // #include "conf.hpp"
 
@@ -34,7 +35,7 @@ struct Gen_TSP_FF_Data_ptrs
 struct TSP_Task
 {
   size_t fst_idx; // start | best
-  size_t snd_idx; // end   | worst
+  size_t snd_idx; // exclusive end | worst
   Gen_TSP_FF_Data_ptrs ptrs; // we need to pass around pointers to data to be elaborated by farm's nodes
 };
 
@@ -99,11 +100,10 @@ struct TSP_Worker : ff::ff_node_t< TSP_Task, TSP_Task >
 // FARM MASTER METHODS IMPLEMENTATION
 void TSP_Master::dispatch_tasks()
 {
-  size_t i, step;
-  step = population_size / (num_workers); // SET THE STEP PROPERLY. (PAR. SLACK)
-  for (i = 0; i + step - 1 < population_size; i += step) // FIX REMAINING PIECES USING size_t remained = size % threshold;
+  const auto ranges = partition_evenly(population_size, num_workers);
+  for(const auto& range : ranges)
   {
-    auto to_send = new TSP_Task{i, i+step-1 ,master_ptrs};
+    auto to_send = new TSP_Task{range.first, range.second, master_ptrs};
     ff_send_out(to_send);
     dispatched_curr_gen++;
   }
@@ -272,7 +272,7 @@ TSP_Task* TSP_Worker::evaluate_population(TSP_Task & task)
   auto sub_pop_min_val = (*pointer_pack.fit_fun)((*pointer_pack.pop)[sub_pop_min_idx]);
   auto sub_pop_max_val = sub_pop_min_val;
 
-  for(i=task.fst_idx; i <= task.snd_idx; ++i) // here the right end of the range is included in the computed range!
+  for(i=task.fst_idx; i < task.snd_idx; ++i)
   { 
     (*pointer_pack.fit_values)[i] = (*pointer_pack.fit_fun)((*pointer_pack.pop)[i]);
     // looking for new best individual

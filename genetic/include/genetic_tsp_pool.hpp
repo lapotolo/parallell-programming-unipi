@@ -2,6 +2,7 @@
 #define GENETIC_TSP_PAR_POOL_H
 
 #include "genetic.hpp"
+#include "partition.hpp"
 #include "pool.hpp"
 
 #include <thread>
@@ -17,8 +18,7 @@ public:
                            , std::function<int32_t(std::vector<int> const&)> f
                            )
                            : num_workers(nw)
-                           , chunks_size(pop_s/nw)
-                           , curr_glob_opt_idx(0)
+                                , curr_glob_opt_idx(0)
                            , my_pool(nw) // the pool call its method start() here!
                            , Genetic_Algorithm(max_its, pop_s, chromo_s,f)
 
@@ -42,7 +42,6 @@ private:
   std::vector<std::thread> workers;
   
   size_t num_workers;
-  size_t chunks_size; // number of chromosome that each worker have to deal with
   size_t curr_glob_opt_idx; // index of the global optimum in the current population
 
   Thread_Pool my_pool;
@@ -65,10 +64,8 @@ private:
 
   void init_ranges()
   {
-    // setup ranges to be given to the workers to work without data races
-    for(size_t i=0; i<num_workers; ++i)
-      ranges.push_back(std::make_pair( i*chunks_size
-                                     ,(i != (num_workers-1) ? (i+1)*chunks_size : population_size)));
+    // Half-open, non-overlapping ranges covering the complete population.
+    ranges = partition_evenly(population_size, num_workers);
   }
 
   void next_generation()
