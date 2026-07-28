@@ -2,6 +2,8 @@
 #define GENETIC_H
 
 #include "conf.hpp"
+#include <iterator>
+#include <stdexcept>
 
 
 // not properly but something like an abstract class
@@ -40,6 +42,17 @@ protected:
   std::function<Fitness_Fun_tout(Chromosome_t const&)> fit_fun;
   std::vector<Fitness_Fun_tout> chromosomes_fitness;
   std::pair<Fitness_Fun_tout, Chromosome_t> current_optimum;
+
+  size_t initialize_current_optimum()
+  {
+    if(population.empty() || chromosomes_fitness.empty())
+      throw std::logic_error("cannot initialize the optimum from an empty population");
+
+    const auto best = std::min_element(chromosomes_fitness.begin(), chromosomes_fitness.end());
+    const auto best_idx = static_cast<size_t>(std::distance(chromosomes_fitness.begin(), best));
+    current_optimum = std::make_pair(*best, population[best_idx]);
+    return best_idx;
+  }
 
   // helper methods used by interface's functions
   // init the population: ie: allocating memory for the matrix representing the population

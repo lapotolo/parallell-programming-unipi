@@ -21,9 +21,10 @@ public:
                 , Genetic_Algorithm(max_its, pop_s, chromo_s, f)
   {
     init_population();
-    chromosomes_fitness.resize(pop_s, 0); // WHY IS THIS NEEDED?
-    current_optimum = std::make_pair( f(population[0])
-                                    ,   population[0]);
+    chromosomes_fitness.resize(pop_s);
+    for(size_t i = 0; i < population_size; ++i)
+      chromosomes_fitness[i] = fit_fun(population[i]);
+    initialize_current_optimum();
   }
 
 

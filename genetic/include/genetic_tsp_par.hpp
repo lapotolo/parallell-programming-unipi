@@ -25,8 +25,7 @@ public:
     init_population();
     chromosomes_fitness.resize(pop_s);
     evaluate_population(0, pop_s);
-    current_optimum = std::make_pair( f(population[curr_glob_opt_idx])
-                                    ,   population[curr_glob_opt_idx]);
+    curr_glob_opt_idx = initialize_current_optimum();
     init_ranges();  // setup ranges for thread tasks' splitting
   }
 
