@@ -1,6 +1,7 @@
 #include "../include/genetic_tsp_seq.hpp"
 #include "../include/tsp_graph.hpp"
 #include "../include/validation.hpp"
+#include "../include/cli.hpp"
 
 int main(int argc, char const *argv[])
 {
@@ -10,9 +11,14 @@ int main(int argc, char const *argv[])
     return -1;
   }
 
-  size_t max_epochs  = atoi(argv[1]);
-  size_t pop_size    = atoi(argv[2]);
-  size_t chromo_size = atoi(argv[3]);
+  size_t max_epochs = 0;
+  size_t pop_size = 0;
+  size_t chromo_size = 0;
+  if(!parse_size_argument(argv[1], max_epochs) ||
+     !parse_size_argument(argv[2], pop_size) ||
+     !parse_size_argument(argv[3], chromo_size) ||
+     !validate_common_configuration(pop_size, chromo_size))
+    return -1;
 
   // create a complete weighted graph with #chromo_size numbers on node
   // edges' weights are i.i.d from the range [1,100]
