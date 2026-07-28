@@ -1,5 +1,6 @@
 #include "../include/genetic_tsp_pool.hpp"
 #include "../include/tsp_graph.hpp"
+#include "../include/validation.hpp"
 
 int main(int argc, char const *argv[])
 {
@@ -49,7 +50,9 @@ int main(int argc, char const *argv[])
   auto elapsed = std::chrono::high_resolution_clock::now() - start;
   auto usec    = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
 
-  auto result = test.get_current_optimum().first;
+  const auto best_solution = test.get_current_optimum();
+  if(!validate_best_solution(best_solution, chromo_size, fit_funct)) return -1;
+  auto result = best_solution.first;
 
 
   // WRITE RESULTS ON A FILE FOR FUTURE ANALYSIS
