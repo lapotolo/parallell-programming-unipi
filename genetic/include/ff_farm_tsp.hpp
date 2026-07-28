@@ -22,9 +22,9 @@ returned by the workers.
 struct Gen_TSP_FF_Data_ptrs
 {
   std::shared_ptr<std::vector<std::vector<int>>> pop;
-  std::shared_ptr<std::vector<int>> fit_values;
-  std::shared_ptr<std::function<int32_t(std::vector<int> const&)>> fit_fun;
-  std::shared_ptr<std::pair<int32_t, std::vector<int>>> curr_opt;
+  std::shared_ptr<std::vector<Fitness>> fit_values;
+  std::shared_ptr<std::function<Fitness(std::vector<int> const&)>> fit_fun;
+  std::shared_ptr<std::pair<Fitness, std::vector<int>>> curr_opt;
 };
 
 
@@ -62,9 +62,9 @@ struct TSP_Master : ff::ff_monode_t<TSP_Task >
             , size_t max_its
             , size_t pop_s
             , std::shared_ptr<std::vector<std::vector<int>>> pop
-            , std::shared_ptr<std::vector<int>> fit_values
-            , std::shared_ptr<std::function<int32_t(std::vector<int> const&)>> fit_fun
-            , std::shared_ptr<std::pair<int32_t, std::vector<int>>> curr_opt
+            , std::shared_ptr<std::vector<Fitness>> fit_values
+            , std::shared_ptr<std::function<Fitness(std::vector<int> const&)>> fit_fun
+            , std::shared_ptr<std::pair<Fitness, std::vector<int>>> curr_opt
             )
             : num_workers(nw)
             , max_epochs(max_its)

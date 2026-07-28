@@ -29,7 +29,7 @@ int main(int argc, char const *argv[])
   // tried to overload operator() but strangely didnt work :(
   auto fit_funct = [&](std::vector<int> const& chromo)
                       {
-                        uint32_t tour_cost = 0;
+                        Fitness tour_cost = 0;
                         size_t k, i, j; 
                         for(k = 0; k < chromo_size-1; ++k)
                         {

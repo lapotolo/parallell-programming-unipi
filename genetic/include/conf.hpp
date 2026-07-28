@@ -1,6 +1,7 @@
 #ifndef CONF_H
 #define CONF_H
 
+#include <cstdint>
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -13,6 +14,8 @@
 #include <fstream>
 
 #include <thread>
+
+using Fitness = std::uint64_t;
 
 #define CROSSOVER_PROB 0.5  // probability that two next chromosomes are crossed over during an iteration of the genetic algorithm
 #define MUTATION_PROB 0.3   // probability that a chromosome mutates during an iteration of the genetic algorithm

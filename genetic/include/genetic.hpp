@@ -17,7 +17,7 @@ public:
   Genetic_Algorithm( size_t max_its
                    , size_t pop_s
                    , size_t chromo_s
-                   , std::function<int32_t(std::vector<int> const&)> f
+                   , std::function<Fitness_Fun_tout(Chromosome_t const&)> f
                    )
                    : 
                      max_epochs(max_its)

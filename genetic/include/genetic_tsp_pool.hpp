@@ -7,7 +7,7 @@
 
 #include <thread>
 
-class Genetic_TSP_Parallel_Pool : Genetic_Algorithm<std::vector<std::vector<int>>, std::vector<int>, int32_t>
+class Genetic_TSP_Parallel_Pool : Genetic_Algorithm<std::vector<std::vector<int>>, std::vector<int>, Fitness>
 {
 public:
   // constructor. First generation is composed of random (feasible) chromosomes
@@ -15,7 +15,7 @@ public:
                            , size_t max_its  
                            , size_t pop_s // chromosome number
                            , size_t chromo_s
-                           , std::function<int32_t(std::vector<int> const&)> f
+                           , std::function<Fitness(std::vector<int> const&)> f
                            )
                            : num_workers(nw)
                                 , curr_glob_opt_idx(0)
@@ -36,7 +36,7 @@ public:
       next_generation();
   }
 
-  std::pair<int32_t, std::vector<int>> get_current_optimum() { return current_optimum; }
+  std::pair<Fitness, std::vector<int>> get_current_optimum() { return current_optimum; }
 
 private:
   std::vector<std::thread> workers;

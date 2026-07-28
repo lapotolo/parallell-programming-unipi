@@ -7,7 +7,7 @@
 
 
 
-class Genetic_TSP_FF : Genetic_Algorithm<std::vector<std::vector<int>>, std::vector<int>, int32_t> 
+class Genetic_TSP_FF : Genetic_Algorithm<std::vector<std::vector<int>>, std::vector<int>, Fitness> 
 {
 public:
   // constructor. First generation is composed of random (feasible) chromosomes
@@ -15,7 +15,7 @@ public:
                 , size_t max_its
                 , size_t pop_s
                 , size_t chromo_s
-                , std::function<int32_t(std::vector<int> const&)> f
+                , std::function<Fitness(std::vector<int> const&)> f
                 )
                 : num_workers(nw)
                 , Genetic_Algorithm(max_its, pop_s, chromo_s, f)
@@ -34,9 +34,9 @@ public:
 
   size_t i;
   auto shared_population = std::make_shared<std::vector<std::vector<int>>>(population);
-  auto shared_fitness = std::make_shared<std::vector<int>>(chromosomes_fitness);
-  auto shared_fit_fun = std::make_shared<std::function<int32_t(std::vector<int> const&)>>(fit_fun);
-  auto shared_optimum = std::make_shared<std::pair<int32_t, std::vector<int>>>(current_optimum);
+  auto shared_fitness = std::make_shared<std::vector<Fitness>>(chromosomes_fitness);
+  auto shared_fit_fun = std::make_shared<std::function<Fitness(std::vector<int> const&)>>(fit_fun);
+  auto shared_optimum = std::make_shared<std::pair<Fitness, std::vector<int>>>(current_optimum);
 
   TSP_Master master (num_workers
                    , max_epochs
@@ -72,7 +72,7 @@ public:
   return;
   }
 
-  std::pair<int32_t, std::vector<int>> get_current_optimum() { return current_optimum; }
+  std::pair<Fitness, std::vector<int>> get_current_optimum() { return current_optimum; }
 
 private:
   size_t num_workers;
