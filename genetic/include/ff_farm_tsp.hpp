@@ -8,6 +8,7 @@
 #include <ff/pipeline.hpp>
 #include <ff/farm.hpp>
 #include "partition.hpp"
+#include "mutation.hpp"
 
 // #include "conf.hpp"
 
@@ -258,11 +259,14 @@ void TSP_Worker::mutate(TSP_Task & task)
   std::mt19937 gen(rd()); // standard mersenne_twister_engine seeded with rd()
 
   std::discrete_distribution<> biased_coin({ 1-MUTATION_PROB, MUTATION_PROB });
-  std::uniform_int_distribution<> idx_distr(0, chromosome_size-1);
 
   for(i=task.fst_idx; i < task.snd_idx; ++i)
-    if( biased_coin(gen))
-      std::swap((*pointer_pack.pop)[i][idx_distr(gen)], (*pointer_pack.pop)[i][idx_distr(gen)]); // thread safe?
+    if(biased_coin(gen))
+    {
+      const auto positions = draw_distinct_indices(chromosome_size, gen);
+      std::swap((*pointer_pack.pop)[i][positions.first],
+                (*pointer_pack.pop)[i][positions.second]);
+    }
 }
 
 // OK

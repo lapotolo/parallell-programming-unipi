@@ -2,6 +2,7 @@
 #define GENETIC_TSP_PAR_H
 
 #include "genetic.hpp"
+#include "mutation.hpp"
 #include "partition.hpp"
 //#include "thread_pool.hpp"
 
@@ -222,11 +223,13 @@ private:
     std::mt19937 gen(rd()); // standard mersenne_twister_engine seeded with rd()
 
     std::discrete_distribution<> biased_coin({ 1-MUTATION_PROB, MUTATION_PROB });
-    std::uniform_int_distribution<> idx_distr(0, chromosome_size-1);
 
     for(i=chunk_s; i < chunk_e; ++i)
       if( i != curr_glob_opt_idx and biased_coin(gen))
-        std::swap(population[i][idx_distr(gen)], population[i][idx_distr(gen)]); // thread safe?
+      {
+        const auto positions = draw_distinct_indices(chromosome_size, gen);
+        std::swap(population[i][positions.first], population[i][positions.second]);
+      }
   }
 
 };
