@@ -16,7 +16,7 @@ public:
                         , Genetic_Algorithm(max_its, pop_s, chromo_s, f)
   {
     init_population();
-    chromosomes_fitness.reserve(pop_s);
+    chromosomes_fitness.resize(pop_s);
     evaluate_population(0, pop_s);
     current_optimum = std::make_pair( f(population[curr_glob_opt_idx])
                                     , population[curr_glob_opt_idx]);
@@ -53,7 +53,7 @@ private:
 
     for(i=chunk_s; i < chunk_e; ++i) // CHECK THIS LOOP IF SOMETHING WRONG
     {
-      chromosomes_fitness.emplace_back(fit_fun(population[i])); // O(m) part
+      chromosomes_fitness[i] = fit_fun(population[i]); // O(m) part
     }
   }
   
