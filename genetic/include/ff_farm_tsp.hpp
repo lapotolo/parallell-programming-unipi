@@ -93,7 +93,7 @@ struct TSP_Worker : ff::ff_node_t< TSP_Task, TSP_Task >
 
   void crossover(TSP_Task & task);
   void mutate(TSP_Task & task);
-  TSP_Task* evaluate_population(TSP_Task & task);
+  void evaluate_population(TSP_Task & task);
 
 };
 
@@ -266,7 +266,7 @@ void TSP_Worker::mutate(TSP_Task & task)
 }
 
 // OK
-TSP_Task* TSP_Worker::evaluate_population(TSP_Task & task)
+void TSP_Worker::evaluate_population(TSP_Task & task)
 {
   size_t i;
   auto pointer_pack = task.ptrs;
@@ -292,17 +292,17 @@ TSP_Task* TSP_Worker::evaluate_population(TSP_Task & task)
       sub_pop_max_idx = i;
     }
   }
-  return new TSP_Task{sub_pop_min_idx, sub_pop_max_idx, 0, 0, task.ptrs};
+  task.fst_idx = sub_pop_min_idx;
+  task.snd_idx = sub_pop_max_idx;
 }
 
 // OK
 TSP_Task* TSP_Worker::svc(TSP_Task* tsp_task)
 {
-  TSP_Task &t = *tsp_task;
   crossover(*tsp_task);
   mutate(*tsp_task);
-  auto to_send = evaluate_population(*tsp_task);
-  return to_send;
+  evaluate_population(*tsp_task);
+  return tsp_task;
 }
 
 #endif // FF_FARM_TSP_H
