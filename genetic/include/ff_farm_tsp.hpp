@@ -34,8 +34,10 @@ struct Gen_TSP_FF_Data_ptrs
 // of the optimum of a single chunk while snd_idx is the position of the current worst
 struct TSP_Task
 {
-  size_t fst_idx; // start | best
-  size_t snd_idx; // exclusive end | worst
+  size_t fst_idx; // chromosome start | best
+  size_t snd_idx; // exclusive chromosome end | worst
+  size_t pair_fst_idx;
+  size_t pair_snd_idx; // exclusive pair end
   Gen_TSP_FF_Data_ptrs ptrs; // we need to pass around pointers to data to be elaborated by farm's nodes
 };
 
@@ -100,10 +102,14 @@ struct TSP_Worker : ff::ff_node_t< TSP_Task, TSP_Task >
 // FARM MASTER METHODS IMPLEMENTATION
 void TSP_Master::dispatch_tasks()
 {
-  const auto ranges = partition_evenly(population_size, num_workers);
+  const auto ranges = partition_crossover_aligned(population_size, num_workers);
   for(const auto& range : ranges)
   {
-    auto to_send = new TSP_Task{range.first, range.second, master_ptrs};
+    auto to_send = new TSP_Task{range.chromosomes.first,
+                                range.chromosomes.second,
+                                range.pairs.first,
+                                range.pairs.second,
+                                master_ptrs};
     ff_send_out(to_send);
     dispatched_curr_gen++;
   }
@@ -115,23 +121,20 @@ void TSP_Master::selection(std::vector<TSP_Task> & workers_results)
 
   auto curr_gen_min_idx = workers_results[0].fst_idx;
   auto curr_gen_max_idx = workers_results[0].snd_idx;
+  auto curr_gen_min_val = (*pointer_pack.fit_values)[curr_gen_min_idx];
+  auto curr_gen_max_val = (*pointer_pack.fit_values)[curr_gen_max_idx];
 
-  auto curr_gen_min_val = pointer_pack.curr_opt->first;
-  auto curr_gen_max_val = curr_gen_min_val;
-      
-  for(auto & t : workers_results)
+  for(const auto& task : workers_results)
   {
-    // check if we have a new minimum for the current generation 
-    if((*pointer_pack.fit_values)[t.fst_idx] < curr_gen_min_val)
+    if((*pointer_pack.fit_values)[task.fst_idx] < curr_gen_min_val)
     {
-      curr_gen_min_idx = t.fst_idx;
-      curr_gen_min_val = (*pointer_pack.fit_values)[t.fst_idx];
+      curr_gen_min_idx = task.fst_idx;
+      curr_gen_min_val = (*pointer_pack.fit_values)[task.fst_idx];
     }
-    // check if we have a new maximum for the current generation 
-    else if((*pointer_pack.fit_values)[t.snd_idx] > curr_gen_max_val)
+    if((*pointer_pack.fit_values)[task.snd_idx] > curr_gen_max_val)
     {
-      curr_gen_max_idx = t.snd_idx;
-      curr_gen_max_val = (*pointer_pack.fit_values)[t.snd_idx];
+      curr_gen_max_idx = task.snd_idx;
+      curr_gen_max_val = (*pointer_pack.fit_values)[task.snd_idx];
     }
   }
 
@@ -192,8 +195,9 @@ void TSP_Worker::crossover(TSP_Task & task)
 
   std::discrete_distribution<> biased_coin({ 1-CROSSOVER_PROB, CROSSOVER_PROB });
   
-  for(i=task.fst_idx; i < task.snd_idx-1; i+=2)
+  for(size_t pair_idx = task.pair_fst_idx; pair_idx < task.pair_snd_idx; ++pair_idx)
   {
+    i = 2 * pair_idx;
     if(biased_coin(gen))
     {
       std::uniform_int_distribution<> left_distr(1, ((chromosome_size)/2)-1);
@@ -288,7 +292,7 @@ TSP_Task* TSP_Worker::evaluate_population(TSP_Task & task)
       sub_pop_max_idx = i;
     }
   }
-  return new TSP_Task{sub_pop_min_idx, sub_pop_max_idx, task.ptrs};
+  return new TSP_Task{sub_pop_min_idx, sub_pop_max_idx, 0, 0, task.ptrs};
 }
 
 // OK

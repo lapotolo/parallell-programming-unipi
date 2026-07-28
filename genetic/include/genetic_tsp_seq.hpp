@@ -57,7 +57,7 @@ private:
   
   void next_generation()
   {
-    crossover(0, population_size);
+    crossover(0, population_size / 2);
     mutate(0, population_size);
     evaluate_population(0, population_size);
     selection(0, population_size);
@@ -101,7 +101,7 @@ private:
     
   }
 
-  void crossover(size_t const& chunk_s, size_t const& chunk_e) // recall, index chunk_e is not in the computed interval
+  void crossover(size_t const& pair_s, size_t const& pair_e)
   {
     size_t i, j, left, right;
 
@@ -110,8 +110,9 @@ private:
 
     std::discrete_distribution<> biased_coin({ 1-CROSSOVER_PROB, CROSSOVER_PROB });
   
-    for(i=chunk_s; i < chunk_e-1; i+=2)
+    for(size_t pair_idx = pair_s; pair_idx < pair_e; ++pair_idx)
     {
+      i = 2 * pair_idx;
       if(biased_coin(gen))
       {
         std::uniform_int_distribution<> left_distr(1, ((chromosome_size)/2)-1);

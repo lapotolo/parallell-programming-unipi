@@ -44,6 +44,7 @@ private:
   size_t curr_glob_opt_idx; // index of the global optimum in the current population
 
   std::vector<std::pair<size_t, size_t>> ranges;
+  std::vector<std::pair<size_t, size_t>> pair_ranges;
 
 
   void init_population()
@@ -63,17 +64,18 @@ private:
   {
     // Half-open, non-overlapping ranges covering the complete population.
     ranges = partition_evenly(population_size, num_workers);
+    pair_ranges = partition_evenly(population_size / 2, num_workers);
   }
 
   void next_generation()
   {
     size_t i;
     // PARALLEL FORK/JOIN MODEL TO APPLY CROSSOVERS TO CHROMOSOMES
-    for(i = 0; i < ranges.size(); ++i)
+    for(i = 0; i < pair_ranges.size(); ++i)
       workers.push_back(std::move(std::thread( &Genetic_TSP_Parallel::crossover
                                              , this
-                                             , ranges[i].first
-                                             , ranges[i].second)));  // FORK num_workers threads
+                                             , pair_ranges[i].first
+                                             , pair_ranges[i].second)));  // FORK crossover tasks
     for(auto & thr : workers)
       thr.join(); // JOIN: u cant proceed in the computation unless every spawned thread completed its task
         workers.clear();
@@ -151,7 +153,7 @@ private:
     curr_glob_opt_idx                     = curr_gen_max_idx;
   }
 
-  void crossover(size_t const& chunk_s, size_t const& chunk_e) // recall, index chunk_e is not in the computed interval
+  void crossover(size_t const& pair_s, size_t const& pair_e)
   {
     size_t i, j, left, right;
 
@@ -160,8 +162,9 @@ private:
 
     std::discrete_distribution<> biased_coin({ 1-CROSSOVER_PROB, CROSSOVER_PROB });
   
-    for(i=chunk_s; i < chunk_e-1; i+=2)
+    for(size_t pair_idx = pair_s; pair_idx < pair_e; ++pair_idx)
     {
+      i = 2 * pair_idx;
       if(biased_coin(gen))
       {
         std::uniform_int_distribution<> left_distr(1, ((chromosome_size)/2)-1);

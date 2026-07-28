@@ -46,6 +46,7 @@ private:
 
   Thread_Pool my_pool;
   std::vector<std::pair<size_t, size_t>> ranges;
+  std::vector<std::pair<size_t, size_t>> pair_ranges;
 
 
 
@@ -66,34 +67,42 @@ private:
   {
     // Half-open, non-overlapping ranges covering the complete population.
     ranges = partition_evenly(population_size, num_workers);
+    pair_ranges = partition_evenly(population_size / 2, num_workers);
   }
 
   void next_generation()
   {
     std::vector<std::future<void>> completed_tasks;
-    completed_tasks.reserve(ranges.size());
+    completed_tasks.reserve(std::max(ranges.size(), pair_ranges.size()));
 
+    for(const auto& range : pair_ranges)
+    {
+      const auto first_pair = range.first;
+      const auto last_pair = range.second;
+      completed_tasks.push_back(my_pool.enqueue([this, first_pair, last_pair]
+        {
+          crossover(first_pair, last_pair);
+        }));
+    }
+    for(auto& task : completed_tasks) task.get();
+
+    completed_tasks.clear();
     for(const auto& range : ranges)
     {
       const auto first = range.first;
       const auto last = range.second;
       completed_tasks.push_back(my_pool.enqueue([this, first, last]
         {
-          crossover(first, last);
           mutate(first, last);
           evaluate_population(first, last);
         }));
     }
+    for(auto& task : completed_tasks) task.get();
 
-    for(auto& task : completed_tasks)
-      task.get();
-
-    // SELECTION PHASE
     selection(0, population_size);
-    // **************************************************************************************
   }
 
-  void crossover(size_t const& chunk_s, size_t const& chunk_e) // recall, index chunk_e is not in the computed interval
+  void crossover(size_t const& pair_s, size_t const& pair_e)
   {
     size_t i, j, left, right;
 
@@ -102,8 +111,9 @@ private:
 
     std::discrete_distribution<> biased_coin({ 1-CROSSOVER_PROB, CROSSOVER_PROB });
   
-    for(i=chunk_s; i < chunk_e-1; i+=2)
+    for(size_t pair_idx = pair_s; pair_idx < pair_e; ++pair_idx)
     {
+      i = 2 * pair_idx;
       if(biased_coin(gen))
       {
         std::uniform_int_distribution<> left_distr(1, ((chromosome_size)/2)-1);
