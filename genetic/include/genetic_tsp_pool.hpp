@@ -73,30 +73,23 @@ private:
 
   void next_generation()
   {
-    size_t i;
-    size_t completed_count = 0;
-    std::vector<std::future<int>> compl_task;
-    compl_task.reserve(num_workers);
+    std::vector<std::future<void>> completed_tasks;
+    completed_tasks.reserve(ranges.size());
 
-    for(i = 0; i < num_workers; ++i)
-      compl_task.push_back(my_pool.enqueue([&]
-        {
-          crossover(ranges[i].first, ranges[i].second);
-          mutate(ranges[i].first, ranges[i].second);
-          evaluate_population(ranges[i].first, ranges[i].second);
-          return 1;
-        }));
-
-    // this guy is gonna use lot of power :(
-    while(completed_count < num_workers)
+    for(const auto& range : ranges)
     {
-      completed_count = 0;
-      for(i = 0; i < num_workers; ++i)
-      {
-        completed_count += compl_task[i].get();
-      }
+      const auto first = range.first;
+      const auto last = range.second;
+      completed_tasks.push_back(my_pool.enqueue([this, first, last]
+        {
+          crossover(first, last);
+          mutate(first, last);
+          evaluate_population(first, last);
+        }));
     }
-    // std::cout<<"completed_count = " << completed_count << "\n";
+
+    for(auto& task : completed_tasks)
+      task.get();
 
     // SELECTION PHASE
     selection(0, population_size);
