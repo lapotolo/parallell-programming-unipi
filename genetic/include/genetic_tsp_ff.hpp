@@ -30,15 +30,21 @@ public:
 
   void run() // FF is deployed in here
   {
+  if(max_epochs == 0) return;
+
   size_t i;
+  auto shared_population = std::make_shared<std::vector<std::vector<int>>>(population);
+  auto shared_fitness = std::make_shared<std::vector<int>>(chromosomes_fitness);
+  auto shared_fit_fun = std::make_shared<std::function<int32_t(std::vector<int> const&)>>(fit_fun);
+  auto shared_optimum = std::make_shared<std::pair<int32_t, std::vector<int>>>(current_optimum);
 
   TSP_Master master (num_workers
                    , max_epochs
                    , population_size
-                   , std::make_shared<std::vector<std::vector<int>>>(population)
-                   , std::make_shared<std::vector<int>>(chromosomes_fitness)
-                   , std::make_shared<std::function<int32_t(std::vector<int> const&)>>(fit_fun)
-                   , std::make_shared<std::pair<int32_t, std::vector<int>>>(current_optimum)
+                   , shared_population
+                   , shared_fitness
+                   , shared_fit_fun
+                   , shared_optimum
                    );
 
   // create the vector keeping pointers for farm's workers
@@ -60,6 +66,9 @@ public:
   }
   //ff::ffTime(ff::STOP_TIME);
   //std::cout << "Time: " << ff::ffTime(ff::GET_TIME) << "\n";
+  population = std::move(*shared_population);
+  chromosomes_fitness = std::move(*shared_fitness);
+  current_optimum = std::move(*shared_optimum);
   return;
   }
 
