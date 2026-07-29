@@ -5,10 +5,9 @@
 #include <cstdint>
 #include <functional>
 #include <stdexcept>
-#include <utility>
 #include <vector>
 
-using City = int;
+using City = std::size_t;
 using Tour = std::vector<City>;
 using Population = std::vector<Tour>;
 using Fitness = std::uint64_t;

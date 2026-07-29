@@ -53,7 +53,7 @@ public:
 
 private:
   std::size_t worker_count_;
-  Thread_Pool pool_;
+  ThreadPool pool_;
 };
 
 #endif // EXECUTORS_THREAD_POOL_EXECUTOR_H

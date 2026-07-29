@@ -1,42 +1,38 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# possible improvement: take arguments seq par ff all
+rm -rf build
+mkdir -p build results/runs
 
-rm -r build
-mkdir -p build
+common_flags=(
+  -std=c++17
+  -O3
+  -finline-functions
+  -Wall
+  -Wextra
+  -Wpedantic
+  -Iinclude
+)
 
-echo "Compiling..."
+echo "Compiling sequential version..."
+c++ "${common_flags[@]}" \
+  src/genetic_tsp_seq.cpp \
+  -o build/seq
 
-export FF_ROOT=./include
+echo "Compiling raw-thread version..."
+c++ "${common_flags[@]}" -pthread \
+  src/genetic_tsp_par.cpp \
+  -o build/par
 
-echo "Sequential version compilation took:"
-time g++ -O3 -finline-functions -std=c++17 -o ./build/seq ./src/genetic_tsp_seq.cpp
+echo "Compiling thread-pool version..."
+c++ "${common_flags[@]}" -pthread \
+  src/genetic_tsp_pool.cpp \
+  -o build/pool
 
-echo "Parallel version (c++ native threads) compilation took:"
-time g++ -O3 -finline-functions -std=c++17 -pthread -o ./build/par ./src/genetic_tsp_par.cpp
+echo "Compiling FastFlow version..."
+c++ "${common_flags[@]}" -pthread \
+  src/genetic_tsp_ff.cpp \
+  -o build/ff
 
-echo "Parallel version with threads pool (c++ native threads) compilation took:"
-time g++ -O3 -finline-functions -std=c++17 -pthread -o ./build/pool ./src/genetic_tsp_pool.cpp
-
-echo "Parallel version (FastFlow) compilation took:"
-time g++ -O3 -finline-functions -std=c++17 -pthread -I$FF_ROOT -o ./build/ff ./src/genetic_tsp_ff.cpp
-
-code=$?
-
-echo ""
-echo "Generated binaries! (return code ${code})"
-echo "Executable in ./build"
-
-echo ""
-echo "Setting up the required directory structure"
-
-rm -r results
-mkdir  results
-mkdir  results/runs/
-
-echo "Created directory results/runs in order to store experiments' results"
-
-
-echo ""
-#echo "Use the provided jupyter notebook to run the experiments interactively."
-echo "Use the script run.sh to run some default experiments and populate the directory ./results."
+echo "Generated binaries in ./build"
+echo "Benchmark results will be appended under ./results/runs"

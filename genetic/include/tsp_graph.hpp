@@ -1,65 +1,87 @@
-// TODO : create a symmetric matrix for real
 #ifndef TSP_GRAPH_H
 #define TSP_GRAPH_H
 
+#include "domain.hpp"
 #include "random_context.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
-#include <vector>
-#include <algorithm>
-#include <functional>
-#include <utility>
+#include <ostream>
 #include <random>
+#include <stdexcept>
+#include <vector>
 
-class TSP_Graph
+class TspGraph
 {
 public:
+  using Weight = std::uint16_t;
 
-  explicit TSP_Graph(std::size_t node_count, RandomSeed seed = make_random_seed())
-    : num_nodes(node_count)
+  explicit TspGraph(std::size_t node_count,
+                    RandomSeed seed = make_random_seed())
+    : weights_(node_count, std::vector<Weight>(node_count))
   {
-    init_tsp_graph(seed);
+    initialize(seed);
   }
 
-  // operator [] returns a const reference to the i-th row of the wrapped graph
-  const std::vector<uint16_t>& operator[](std::size_t i) const { return graph_m[i]; };
-
-  void print_graph()
+  [[nodiscard]] std::size_t node_count() const noexcept
   {
-    size_t k;
-    std::cout<< "PRINTING THE GRAPH:\n";
-    for(k=0; k < num_nodes; ++k)
+    return weights_.size();
+  }
+
+  [[nodiscard]] Weight weight(City first, City second) const
+  {
+    if(first >= node_count() || second >= node_count())
+      throw std::out_of_range{"city index is outside the graph"};
+    if(first == second) return 0;
+    return first < second
+         ? weights_[first][second]
+         : weights_[second][first];
+  }
+
+  [[nodiscard]] Fitness tour_cost(const Tour& tour) const
+  {
+    if(tour.size() != node_count())
+      throw std::invalid_argument{"tour size does not match graph size"};
+
+    Fitness cost = 0;
+    for(std::size_t index = 0; index < tour.size(); ++index)
     {
-      for(auto e : graph_m[k]) std::cout<<e << ", ";
-      std::cout<<"\n";
+      const auto next = (index + 1) % tour.size();
+      cost += weight(tour[index], tour[next]);
     }
-    std::cout<<"------------------------------\n";
-
+    return cost;
   }
 
-
-protected:
-  std::vector<std::vector<uint16_t>> graph_m;
-  size_t num_nodes;
-
-  // create a completely connected graph with num_nodes nodes and i.i.d weights on edges
-  void init_tsp_graph(RandomSeed seed)
+  void print(std::ostream& output = std::cout) const
   {
-    size_t i, z;
-    std::mt19937_64 gen{seed};
-    std::uniform_int_distribution<> distrib_w(1, 9);
-
-    graph_m.reserve(num_nodes);
-    for(i = 0; i < num_nodes; ++i)
+    output << "PRINTING THE GRAPH:\n";
+    for(const auto& row : weights_)
     {
-      std::vector<uint16_t> adj_list(num_nodes);
-      for(z = i+1;  z < num_nodes; ++z) adj_list[z] = distrib_w(gen);
-
-      graph_m.emplace_back(adj_list);
+      for(const auto value : row)
+        output << value << ", ";
+      output << '\n';
     }
+    output << "------------------------------\n";
   }
 
+private:
+  std::vector<std::vector<Weight>> weights_;
 
+  void initialize(RandomSeed seed)
+  {
+    RandomEngine engine{seed};
+    std::uniform_int_distribution<unsigned int> weight_distribution{1, 9};
+
+    for(std::size_t first = 0; first < node_count(); ++first)
+    {
+      for(std::size_t second = first + 1; second < node_count(); ++second)
+      {
+        weights_[first][second] = static_cast<Weight>(
+          weight_distribution(engine));
+      }
+    }
+  }
 };
 
 #endif // TSP_GRAPH_H

@@ -1,15 +1,13 @@
-#include "../include/genetic.hpp"
-#include "../include/genetic_operations.hpp"
+#include "../include/domain.hpp"
 #include "../include/executors/executor.hpp"
-#include "../include/genetic_tsp_par.hpp"
-#include "../include/genetic_tsp_pool.hpp"
-#include "../include/genetic_tsp_seq.hpp"
-#include "../include/genetic_tsp.hpp"
-#include "../include/executors/sequential_executor.hpp"
 #include "../include/executors/raw_thread_executor.hpp"
+#include "../include/executors/sequential_executor.hpp"
 #include "../include/executors/thread_pool_executor.hpp"
+#include "../include/genetic_operations.hpp"
+#include "../include/genetic_tsp.hpp"
 #include "../include/mutation.hpp"
 #include "../include/partition.hpp"
+#include "../include/random_context.hpp"
 #include "../include/validation.hpp"
 
 #include <atomic>
@@ -17,6 +15,7 @@
 #include <cstddef>
 #include <iostream>
 #include <random>
+#include <stdexcept>
 #include <vector>
 
 namespace
@@ -24,12 +23,12 @@ namespace
 Fitness tour_fitness(const Tour& tour)
 {
   Fitness result = 0;
-  for(std::size_t i = 0; i < tour.size(); ++i)
+  for(std::size_t index = 0; index < tour.size(); ++index)
   {
-    const auto next = (i + 1) % tour.size();
-    const auto difference = tour[i] > tour[next]
-                          ? tour[i] - tour[next]
-                          : tour[next] - tour[i];
+    const auto next = (index + 1) % tour.size();
+    const auto difference = tour[index] > tour[next]
+                          ? tour[index] - tour[next]
+                          : tour[next] - tour[index];
     result += static_cast<Fitness>(difference);
   }
   return result;
@@ -46,14 +45,15 @@ void check_partition(std::size_t elements, std::size_t workers)
     assert(range.first == previous_end);
     assert(range.first < range.second);
     assert(range.second <= elements);
-    for(std::size_t i = range.first; i < range.second; ++i) ++coverage[i];
+    for(std::size_t index = range.first; index < range.second; ++index)
+      ++coverage[index];
     previous_end = range.second;
   }
 
   assert(previous_end == elements);
-  for(const auto count : coverage) assert(count == 1);
+  for(const auto count : coverage)
+    assert(count == 1);
 }
-
 
 class RecordingExecutor
 {
@@ -63,44 +63,36 @@ public:
   {
     if(count == 0) return;
     ++calls;
-    function(0, count, 0);
+    function(0, count, WorkerId{0});
   }
 
   std::size_t calls = 0;
 };
 
-class Initial_Optimum_Harness
-  : public Genetic_Algorithm
+template<typename Executor>
+void check_algorithm_evaluates_every_generation(
+  Executor& executor,
+  std::size_t population_size,
+  std::size_t epochs)
 {
-public:
-  Initial_Optimum_Harness()
-    : Genetic_Algorithm(GeneticConfig{3, 4, 0}, tour_fitness)
-  {
-    state_.population = {{0, 1, 2, 3}, {0, 2, 1, 3}, {0, 3, 1, 2}};
-    state_.fitness = {90, 25, 60};
-  }
+  std::atomic<std::size_t> calls{0};
+  const FitnessFunction fitness = [&calls](const Tour& tour) {
+    ++calls;
+    return tour_fitness(tour);
+  };
 
-  std::size_t initialize()
-  {
-    return initialize_global_best(state_);
-  }
+  GeneticTsp algorithm{
+    GeneticConfig{population_size, 6, epochs},
+    fitness,
+    RandomSeed{12345}};
+  const auto result = algorithm.run(executor);
 
-  const BestSolution& optimum() const
-  {
-    return state_.global_best;
-  }
-};
-
-template<typename AlgorithmFactory>
-void check_algorithm_evaluates_every_generation(AlgorithmFactory&& make_algorithm,
-                                                std::size_t population_size,
-                                                std::size_t epochs,
-                                                std::atomic<std::size_t>& calls)
-{
-  auto algorithm = make_algorithm();
-  algorithm.run();
   assert(calls.load() == population_size * (epochs + 1));
-  assert(validate_best_solution(algorithm.get_current_optimum(), 6, tour_fitness));
+  assert(validate_best_solution(result, 6, fitness));
+  assert(validate_genetic_state(
+    algorithm.state(),
+    algorithm.config(),
+    fitness));
 }
 }
 
@@ -109,14 +101,17 @@ int main()
   {
     RecordingExecutor executor;
     std::size_t visited = 0;
-    execute_ranges(executor, 7, [&](std::size_t first,
-                                    std::size_t last,
-                                    WorkerId worker_id) {
-      assert(first == 0);
-      assert(last == 7);
-      assert(worker_id == 0);
-      visited += last - first;
-    });
+    execute_ranges(
+      executor,
+      7,
+      [&](std::size_t first,
+          std::size_t last,
+          WorkerId worker_id) {
+        assert(first == 0);
+        assert(last == 7);
+        assert(worker_id == 0);
+        visited += last - first;
+      });
     assert(executor.calls == 1);
     assert(visited == 7);
   }
@@ -133,13 +128,14 @@ int main()
   {
     const auto ranges = partition_crossover_aligned(10, 3);
     assert(ranges.size() == 3);
-    assert(ranges[0].chromosomes == Work_Range(0, 4));
-    assert(ranges[1].chromosomes == Work_Range(4, 8));
-    assert(ranges[2].chromosomes == Work_Range(8, 10));
-    assert(ranges[0].pairs == Work_Range(0, 2));
-    assert(ranges[1].pairs == Work_Range(2, 4));
-    assert(ranges[2].pairs == Work_Range(4, 5));
+    assert(ranges[0].chromosomes == WorkRange(0, 4));
+    assert(ranges[1].chromosomes == WorkRange(4, 8));
+    assert(ranges[2].chromosomes == WorkRange(8, 10));
+    assert(ranges[0].pairs == WorkRange(0, 2));
+    assert(ranges[1].pairs == WorkRange(2, 4));
+    assert(ranges[2].pairs == WorkRange(4, 5));
   }
+
   {
     const auto ranges = partition_crossover_aligned(9, 3);
     assert(ranges.back().chromosomes.second == 9);
@@ -153,10 +149,17 @@ int main()
   }
 
   {
-    Initial_Optimum_Harness harness;
-    assert(harness.initialize() == 1);
-    assert(harness.optimum().fitness == 25);
-    assert(harness.optimum().tour == Tour({0, 2, 1, 3}));
+    GeneticState state{
+      Population{
+        Tour{0, 1, 2, 3},
+        Tour{0, 2, 1, 3},
+        Tour{0, 3, 1, 2}},
+      FitnessVector{90, 25, 60},
+      BestSolution{}};
+
+    assert(initialize_global_best(state) == 1);
+    assert(state.global_best.fitness == 25);
+    assert(state.global_best.tour == Tour({0, 2, 1, 3}));
   }
 
   {
@@ -169,7 +172,7 @@ int main()
 
   {
     std::mt19937_64 engine{12345};
-    for(std::size_t i = 0; i < 1000; ++i)
+    for(std::size_t iteration = 0; iteration < 1000; ++iteration)
     {
       const auto positions = draw_distinct_indices(6, engine);
       assert(positions.first < 6);
@@ -180,16 +183,20 @@ int main()
 
   assert(is_valid_tour({0, 1, 2, 3}, 4));
   assert(!is_valid_tour({0, 1, 1, 3}, 4));
-  assert(validate_best_solution(BestSolution{tour_fitness(Tour{0, 1, 2, 3}),
-                                             Tour{0, 1, 2, 3}},
-                                4,
-                                tour_fitness));
+  assert(validate_best_solution(
+    BestSolution{
+      tour_fitness(Tour{0, 1, 2, 3}),
+      Tour{0, 1, 2, 3}},
+    4,
+    tour_fitness));
 
   {
     GeneticState state{
       Population{Tour{0, 1, 2, 3}},
       FitnessVector{tour_fitness(Tour{0, 1, 2, 3})},
-      BestSolution{tour_fitness(Tour{0, 1, 2, 3}), Tour{0, 1, 2, 3}}
+      BestSolution{
+        tour_fitness(Tour{0, 1, 2, 3}),
+        Tour{0, 1, 2, 3}}
     };
     assert(validate_genetic_state(
       state,
@@ -202,29 +209,10 @@ int main()
 
   {
     SequentialExecutor executor;
-    GeneticTsp algorithm{
-      GeneticConfig{population_size, 6, epochs},
-      tour_fitness,
-      12345};
-    const auto result = algorithm.run(executor);
-    assert(validate_best_solution(result, 6, tour_fitness));
-    assert(validate_genetic_state(
-      algorithm.state(),
-      algorithm.config(),
-      tour_fitness));
-  }
-
-  {
-    std::atomic<std::size_t> calls{0};
-    auto fitness = [&calls](const Tour& tour) {
-      ++calls;
-      return tour_fitness(tour);
-    };
     check_algorithm_evaluates_every_generation(
-      [&] { return Genetic_TSP_Sequential(GeneticConfig{population_size, 6, epochs}, fitness, 12345); },
+      executor,
       population_size,
-      epochs,
-      calls);
+      epochs);
   }
 
   {
@@ -232,30 +220,24 @@ int main()
     bool propagated = false;
     try
     {
-      execute_ranges(executor, 8, [](std::size_t first,
-                                     std::size_t,
-                                     WorkerId) {
-        if(first == 0) throw std::runtime_error{"worker failure"};
-      });
+      execute_ranges(
+        executor,
+        8,
+        [](std::size_t first, std::size_t, WorkerId) {
+          if(first == 0)
+            throw std::runtime_error{"worker failure"};
+        });
     }
     catch(const std::runtime_error&)
     {
       propagated = true;
     }
     assert(propagated);
-  }
 
-  {
-    std::atomic<std::size_t> calls{0};
-    auto fitness = [&calls](const Tour& tour) {
-      ++calls;
-      return tour_fitness(tour);
-    };
     check_algorithm_evaluates_every_generation(
-      [&] { return Genetic_TSP_Parallel(4, GeneticConfig{population_size, 6, epochs}, fitness, 12345); },
+      executor,
       population_size,
-      epochs,
-      calls);
+      epochs);
   }
 
   {
@@ -263,30 +245,24 @@ int main()
     bool propagated = false;
     try
     {
-      execute_ranges(executor, 8, [](std::size_t first,
-                                     std::size_t,
-                                     WorkerId) {
-        if(first == 0) throw std::runtime_error{"pool task failure"};
-      });
+      execute_ranges(
+        executor,
+        8,
+        [](std::size_t first, std::size_t, WorkerId) {
+          if(first == 0)
+            throw std::runtime_error{"pool task failure"};
+        });
     }
     catch(const std::runtime_error&)
     {
       propagated = true;
     }
     assert(propagated);
-  }
 
-  {
-    std::atomic<std::size_t> calls{0};
-    auto fitness = [&calls](const Tour& tour) {
-      ++calls;
-      return tour_fitness(tour);
-    };
     check_algorithm_evaluates_every_generation(
-      [&] { return Genetic_TSP_Parallel_Pool(4, GeneticConfig{population_size, 6, epochs}, fitness, 12345); },
+      executor,
       population_size,
-      epochs,
-      calls);
+      epochs);
   }
 
   std::cout << "P0 correctness tests passed.\n";

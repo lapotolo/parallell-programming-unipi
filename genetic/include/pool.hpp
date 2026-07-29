@@ -14,27 +14,27 @@
 #include <utility>
 #include <vector>
 
-class Thread_Pool
+class ThreadPool
 {
 public:
   using Task = std::function<void()>;
 
-  explicit Thread_Pool(std::size_t worker_count)
+  explicit ThreadPool(std::size_t worker_count)
   {
     if(worker_count == 0)
       throw std::invalid_argument{"worker_count must be greater than zero"};
     start(worker_count);
   }
 
-  ~Thread_Pool()
+  ~ThreadPool()
   {
     stop();
   }
 
-  Thread_Pool(const Thread_Pool&) = delete;
-  Thread_Pool& operator=(const Thread_Pool&) = delete;
-  Thread_Pool(Thread_Pool&&) = delete;
-  Thread_Pool& operator=(Thread_Pool&&) = delete;
+  ThreadPool(const ThreadPool&) = delete;
+  ThreadPool& operator=(const ThreadPool&) = delete;
+  ThreadPool(ThreadPool&&) = delete;
+  ThreadPool& operator=(ThreadPool&&) = delete;
 
   template<typename Function>
   auto enqueue(Function&& function)

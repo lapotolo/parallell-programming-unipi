@@ -18,7 +18,7 @@
 
 inline void evaluate_range(GeneticState& state,
                            const FitnessFunction& fitness_function,
-                           Work_Range range)
+                           WorkRange range)
 {
   for(std::size_t index = range.first; index < range.second; ++index)
     state.fitness[index] = fitness_function(state.population[index]);
@@ -69,9 +69,9 @@ inline void repair_tour(Tour& tour)
   std::vector<std::size_t> occurrences(tour.size(), 0);
   for(const auto city : tour)
   {
-    if(city < 0 || static_cast<std::size_t>(city) >= tour.size())
+    if(city >= tour.size())
       throw std::logic_error{"crossover produced an out-of-range city"};
-    ++occurrences[static_cast<std::size_t>(city)];
+    ++occurrences[city];
   }
 
   std::vector<City> missing;
@@ -79,13 +79,13 @@ inline void repair_tour(Tour& tour)
   for(std::size_t city = 0; city < occurrences.size(); ++city)
   {
     if(occurrences[city] == 0)
-      missing.push_back(static_cast<City>(city));
+      missing.push_back(city);
   }
 
   std::size_t missing_index = 0;
   for(auto& city : tour)
   {
-    const auto index = static_cast<std::size_t>(city);
+    const auto index = city;
     if(occurrences[index] <= 1) continue;
 
     --occurrences[index];
@@ -94,7 +94,7 @@ inline void repair_tour(Tour& tour)
 }
 
 inline void crossover_pair_range(GeneticState& state,
-                                 Work_Range pair_range,
+                                 WorkRange pair_range,
                                  const GenerationRandomPlan& plan)
 {
   if(pair_range.second > plan.crossover.size())
@@ -123,7 +123,7 @@ inline void crossover_pair_range(GeneticState& state,
 }
 
 inline void mutate_range(GeneticState& state,
-                         Work_Range range,
+                         WorkRange range,
                          const GenerationRandomPlan& plan)
 {
   if(range.second > plan.mutation.size())
@@ -146,7 +146,7 @@ struct FitnessExtrema
 };
 
 inline FitnessExtrema find_fitness_extrema(const GeneticState& state,
-                                           Work_Range range)
+                                           WorkRange range)
 {
   if(range.first >= range.second || range.second > state.fitness.size())
     throw std::invalid_argument{"cannot find extrema in an invalid range"};
