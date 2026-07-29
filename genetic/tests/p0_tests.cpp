@@ -1,4 +1,5 @@
 #include "../include/genetic.hpp"
+#include "../include/genetic_operations.hpp"
 #include "../include/genetic_tsp_par.hpp"
 #include "../include/genetic_tsp_pool.hpp"
 #include "../include/genetic_tsp_seq.hpp"
@@ -61,7 +62,7 @@ public:
 
   std::size_t initialize()
   {
-    return initialize_current_optimum();
+    return initialize_global_best(state_);
   }
 
   const BestSolution& optimum() const

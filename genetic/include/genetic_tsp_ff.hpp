@@ -2,6 +2,7 @@
 #define GENETIC_TSP_FF_H
 
 #include "genetic.hpp"
+#include "genetic_operations.hpp"
 #include "ff_farm_tsp.hpp"
 
 #include <algorithm>
@@ -25,11 +26,8 @@ public:
                 : Genetic_Algorithm(std::move(config), std::move(fitness_function))
                 , num_workers(worker_count)
   {
-    init_population();
-    state_.fitness.resize(config_.population_size);
-    for(size_t i = 0; i < config_.population_size; ++i)
-      state_.fitness[i] = fitness_function_(state_.population[i]);
-    initialize_current_optimum();
+    initialize_algorithm_state(
+      state_, config_, fitness_function_, initialization_engine_);
   }
 
 
@@ -69,21 +67,9 @@ public:
   BestSolution get_current_optimum() const { return state_.global_best; }
 
 private:
-  size_t num_workers;
-  size_t chunks_size; // number of chromosome that each worker have to deal with
+  std::size_t num_workers;
+  RandomEngine initialization_engine_{make_random_engine()};
 
-  void init_population()
-  {
-    size_t i;
-    state_.population.reserve(config_.population_size);
-    for(i = 0; i < config_.population_size; ++i)
-    {
-      Tour chromosome(config_.chromosome_size);
-      std::iota(chromosome.begin(), chromosome.end(), 0);
-      std::shuffle(chromosome.begin(), chromosome.end(), std::mt19937{std::random_device{}()});
-      state_.population.emplace_back(chromosome);
-    }
-  }
 };
 
 #endif // GENETIC_TSP_FF_H
