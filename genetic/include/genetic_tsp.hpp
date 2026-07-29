@@ -6,9 +6,9 @@
 #include "genetic_operations.hpp"
 #include "genetic_pipeline.hpp"
 #include "genetic_state.hpp"
+#include "operation_counts.hpp"
 #include "random_context.hpp"
 
-#include <cstddef>
 #include <utility>
 
 class GeneticTsp
@@ -24,13 +24,19 @@ public:
     config_.validate();
     initialize_algorithm_state(
       state_, config_, fitness_function_, random_context_.engine());
+    operation_counts_.fitness_evaluations = config_.population_size;
   }
 
   template<typename Executor>
   BestSolution run(Executor& executor)
   {
     run_generations(
-      state_, config_, fitness_function_, executor, random_context_);
+      state_,
+      config_,
+      fitness_function_,
+      executor,
+      random_context_,
+      operation_counts_);
     return state_.global_best;
   }
 
@@ -49,6 +55,11 @@ public:
     return state_.global_best;
   }
 
+  [[nodiscard]] const OperationCounts& operation_counts() const noexcept
+  {
+    return operation_counts_;
+  }
+
   [[nodiscard]] RandomSeed seed() const noexcept
   {
     return random_context_.seed();
@@ -59,6 +70,7 @@ private:
   FitnessFunction fitness_function_;
   RandomContext random_context_;
   GeneticState state_;
+  OperationCounts operation_counts_;
 };
 
 #endif // GENETIC_TSP_H

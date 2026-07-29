@@ -30,7 +30,9 @@ c++ "${common_flags[@]}" -pthread \
   -o build/pool
 
 echo "Compiling FastFlow version..."
-c++ "${common_flags[@]}" -pthread \
+# FastFlow is bundled third-party code and is compiled without the project's
+# warning policy; shared project code is warning-checked by the native targets.
+c++ -std=c++17 -O3 -finline-functions -pthread -Iinclude \
   src/genetic_tsp_ff.cpp \
   -o build/ff
 

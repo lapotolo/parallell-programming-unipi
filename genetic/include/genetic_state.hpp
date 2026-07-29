@@ -12,6 +12,18 @@ struct GeneticState
   BestSolution global_best;
 };
 
+inline bool operator==(const GeneticState& first, const GeneticState& second)
+{
+  return first.population == second.population &&
+         first.fitness == second.fitness &&
+         first.global_best == second.global_best;
+}
+
+inline bool operator!=(const GeneticState& first, const GeneticState& second)
+{
+  return !(first == second);
+}
+
 inline void validate_state_shape(const GeneticState& state,
                                  const GeneticConfig& config)
 {
