@@ -1,5 +1,6 @@
 #include "../include/genetic.hpp"
 #include "../include/genetic_operations.hpp"
+#include "../include/executors/executor.hpp"
 #include "../include/genetic_tsp_par.hpp"
 #include "../include/genetic_tsp_pool.hpp"
 #include "../include/genetic_tsp_seq.hpp"
@@ -49,6 +50,21 @@ void check_partition(std::size_t elements, std::size_t workers)
   for(const auto count : coverage) assert(count == 1);
 }
 
+
+class RecordingExecutor
+{
+public:
+  template<typename Function>
+  void for_each_range(std::size_t count, Function&& function)
+  {
+    if(count == 0) return;
+    ++calls;
+    function(0, count, 0);
+  }
+
+  std::size_t calls = 0;
+};
+
 class Initial_Optimum_Harness
   : public Genetic_Algorithm
 {
@@ -86,6 +102,21 @@ void check_algorithm_evaluates_every_generation(AlgorithmFactory&& make_algorith
 
 int main()
 {
+  {
+    RecordingExecutor executor;
+    std::size_t visited = 0;
+    execute_ranges(executor, 7, [&](std::size_t first,
+                                    std::size_t last,
+                                    WorkerId worker_id) {
+      assert(first == 0);
+      assert(last == 7);
+      assert(worker_id == 0);
+      visited += last - first;
+    });
+    assert(executor.calls == 1);
+    assert(visited == 7);
+  }
+
   check_partition(0, 1);
   check_partition(1, 1);
   check_partition(3, 1);
