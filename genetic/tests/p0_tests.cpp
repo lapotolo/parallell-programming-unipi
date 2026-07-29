@@ -15,9 +15,6 @@
 
 namespace
 {
-using Population = std::vector<std::vector<int>>;
-using Tour = std::vector<int>;
-
 Fitness tour_fitness(const Tour& tour)
 {
   Fitness result = 0;
@@ -52,14 +49,14 @@ void check_partition(std::size_t elements, std::size_t workers)
 }
 
 class Initial_Optimum_Harness
-  : public Genetic_Algorithm<Population, Tour, Fitness>
+  : public Genetic_Algorithm
 {
 public:
   Initial_Optimum_Harness()
-    : Genetic_Algorithm(0, 3, 4, tour_fitness)
+    : Genetic_Algorithm(GeneticConfig{3, 4, 0}, tour_fitness)
   {
-    population = {{0, 1, 2, 3}, {0, 2, 1, 3}, {0, 3, 1, 2}};
-    chromosomes_fitness = {90, 25, 60};
+    population_ = {{0, 1, 2, 3}, {0, 2, 1, 3}, {0, 3, 1, 2}};
+    fitness_ = {90, 25, 60};
   }
 
   std::size_t initialize()
@@ -67,9 +64,9 @@ public:
     return initialize_current_optimum();
   }
 
-  const std::pair<Fitness, Tour>& optimum() const
+  const BestSolution& optimum() const
   {
-    return current_optimum;
+    return global_best_;
   }
 };
 
@@ -122,8 +119,8 @@ int main()
   {
     Initial_Optimum_Harness harness;
     assert(harness.initialize() == 1);
-    assert(harness.optimum().first == 25);
-    assert(harness.optimum().second == Tour({0, 2, 1, 3}));
+    assert(harness.optimum().fitness == 25);
+    assert(harness.optimum().tour == Tour({0, 2, 1, 3}));
   }
 
   {
@@ -139,8 +136,8 @@ int main()
 
   assert(is_valid_tour({0, 1, 2, 3}, 4));
   assert(!is_valid_tour({0, 1, 1, 3}, 4));
-  assert(validate_best_solution(std::make_pair(tour_fitness(Tour{0, 1, 2, 3}),
-                                                Tour{0, 1, 2, 3}),
+  assert(validate_best_solution(BestSolution{tour_fitness(Tour{0, 1, 2, 3}),
+                                             Tour{0, 1, 2, 3}},
                                 4,
                                 tour_fitness));
 
@@ -154,7 +151,7 @@ int main()
       return tour_fitness(tour);
     };
     check_algorithm_evaluates_every_generation(
-      [&] { return Genetic_TSP_Sequential(epochs, population_size, 6, fitness); },
+      [&] { return Genetic_TSP_Sequential(GeneticConfig{population_size, 6, epochs}, fitness); },
       population_size,
       epochs,
       calls);
@@ -167,7 +164,7 @@ int main()
       return tour_fitness(tour);
     };
     check_algorithm_evaluates_every_generation(
-      [&] { return Genetic_TSP_Parallel(4, epochs, population_size, 6, fitness); },
+      [&] { return Genetic_TSP_Parallel(4, GeneticConfig{population_size, 6, epochs}, fitness); },
       population_size,
       epochs,
       calls);
@@ -180,7 +177,7 @@ int main()
       return tour_fitness(tour);
     };
     check_algorithm_evaluates_every_generation(
-      [&] { return Genetic_TSP_Parallel_Pool(4, epochs, population_size, 6, fitness); },
+      [&] { return Genetic_TSP_Parallel_Pool(4, GeneticConfig{population_size, 6, epochs}, fitness); },
       population_size,
       epochs,
       calls);

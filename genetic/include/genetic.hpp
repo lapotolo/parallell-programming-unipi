@@ -1,78 +1,42 @@
 #ifndef GENETIC_H
 #define GENETIC_H
 
-#include "conf.hpp"
+#include "domain.hpp"
+
+#include <algorithm>
+#include <cstddef>
 #include <iterator>
 #include <stdexcept>
+#include <utility>
 
-
-// not properly but something like an abstract class
-template< typename Population_t       // type of the population. Hopefully an stl container of Chomosomes_t
-        , typename Chromosome_t       // type of the chromosome
-        , typename Fitness_Fun_tout > // return type of the fitness function
 class Genetic_Algorithm
 {
 public:
-  // constructor
-  Genetic_Algorithm( size_t max_its
-                   , size_t pop_s
-                   , size_t chromo_s
-                   , std::function<Fitness_Fun_tout(Chromosome_t const&)> f
-                   )
-                   : 
-                     max_epochs(max_its)
-                   , population_size(pop_s)
-                   , chromosome_size(chromo_s)
-                   , fit_fun(f)
-                   {};
-
-  void run();
-
-  // returns the current optimum value
-  std::pair<Fitness_Fun_tout, Chromosome_t> get_current_optimum();
-
-protected:
-  // constructor parameters
-  size_t max_epochs;      // maximum number of iterations of the algorithm
-  size_t population_size; // population size.
-  size_t chromosome_size; // chromosome size (hopefully it is represented as a stl container)
-  
-  // other fields
-  Population_t population;
-  std::function<Fitness_Fun_tout(Chromosome_t const&)> fit_fun;
-  std::vector<Fitness_Fun_tout> chromosomes_fitness;
-  std::pair<Fitness_Fun_tout, Chromosome_t> current_optimum;
-
-  size_t initialize_current_optimum()
+  Genetic_Algorithm(GeneticConfig config, FitnessFunction fitness_function)
+    : config_{std::move(config)}
+    , fitness_function_{std::move(fitness_function)}
   {
-    if(population.empty() || chromosomes_fitness.empty())
-      throw std::logic_error("cannot initialize the optimum from an empty population");
-
-    const auto best = std::min_element(chromosomes_fitness.begin(), chromosomes_fitness.end());
-    const auto best_idx = static_cast<size_t>(std::distance(chromosomes_fitness.begin(), best));
-    current_optimum = std::make_pair(*best, population[best_idx]);
-    return best_idx;
+    config_.validate();
   }
 
-  // helper methods used by interface's functions
-  // init the population: ie: allocating memory for the matrix representing the population
-  void init_population();
+protected:
+  GeneticConfig config_;
+  Population population_;
+  FitnessFunction fitness_function_;
+  FitnessVector fitness_;
+  BestSolution global_best_;
 
-  // evaluate the population and updates the collection chromosomes fitness
-  // returns the index of the best chromosome
-  void evaluate_population(size_t const& chunk_s, size_t const& chunk_e);
+  std::size_t initialize_current_optimum()
+  {
+    if(population_.empty() || fitness_.empty())
+      throw std::logic_error{"cannot initialize the optimum from an empty population"};
 
-  // apply the crossover reproduction with a given probability
-  void crossover(size_t const& chunk_s, size_t const& chunk_e);
-
-  // apply some mutation to the chromosomes with a given probability
-  void mutate(size_t const& chunk_s, size_t const& chunk_e);
-
-  // scan the vector of current fitness for each chromosomes,
-  // record the current best in `current_optimum` field
-  // replace the worst element of the current gen with the best optimum found so far
-  void selection(size_t const& chunk_s, size_t const& chunk_e);
-  
+    const auto best = std::min_element(fitness_.begin(), fitness_.end());
+    const auto best_index = static_cast<std::size_t>(
+      std::distance(fitness_.begin(), best));
+    global_best_ = BestSolution{*best, population_[best_index]};
+    return best_index;
+  }
 };
 
 #endif // GENETIC_H

@@ -22,10 +22,11 @@ returned by the workers.
 
 struct Gen_TSP_FF_Data_ptrs
 {
-  std::shared_ptr<std::vector<std::vector<int>>> pop;
-  std::shared_ptr<std::vector<Fitness>> fit_values;
-  std::shared_ptr<std::function<Fitness(std::vector<int> const&)>> fit_fun;
-  std::shared_ptr<std::pair<Fitness, std::vector<int>>> curr_opt;
+  std::shared_ptr<Population> pop;
+  std::shared_ptr<FitnessVector> fit_values;
+  std::shared_ptr<FitnessFunction> fit_fun;
+  std::shared_ptr<BestSolution> curr_opt;
+  GeneticConfig config;
 };
 
 
@@ -49,7 +50,7 @@ struct TSP_Master : ff::ff_monode_t<TSP_Task >
   size_t num_workers;
   size_t max_epochs;
   size_t population_size;
-  
+
   size_t curr_epoch;
   size_t dispatched_curr_gen; // counter for tasks already sent in the current generation
   size_t received_curr_gen;   // counter for tasks completed in the current generation
@@ -62,15 +63,16 @@ struct TSP_Master : ff::ff_monode_t<TSP_Task >
   TSP_Master( size_t nw
             , size_t max_its
             , size_t pop_s
-            , std::shared_ptr<std::vector<std::vector<int>>> pop
-            , std::shared_ptr<std::vector<Fitness>> fit_values
-            , std::shared_ptr<std::function<Fitness(std::vector<int> const&)>> fit_fun
-            , std::shared_ptr<std::pair<Fitness, std::vector<int>>> curr_opt
+            , std::shared_ptr<Population> pop
+            , std::shared_ptr<FitnessVector> fit_values
+            , std::shared_ptr<FitnessFunction> fit_fun
+            , std::shared_ptr<BestSolution> curr_opt
+            , GeneticConfig config
             )
             : num_workers(nw)
             , max_epochs(max_its)
             , population_size(pop_s)
-            , master_ptrs({pop, fit_values, fit_fun, curr_opt})
+            , master_ptrs({pop, fit_values, fit_fun, curr_opt, std::move(config)})
             , curr_epoch(0)
             , dispatched_curr_gen(0)
             , received_curr_gen(0)
@@ -87,7 +89,7 @@ struct TSP_Master : ff::ff_monode_t<TSP_Task >
 
 };
 
-struct TSP_Worker : ff::ff_node_t< TSP_Task, TSP_Task > 
+struct TSP_Worker : ff::ff_node_t< TSP_Task, TSP_Task >
 {
 
   TSP_Task* svc(TSP_Task* tsp_task);
@@ -141,15 +143,15 @@ void TSP_Master::selection(std::vector<TSP_Task> & workers_results)
 
   // if in this generation we found a new optimum
   // then we record it in the proper a class field
-  if(curr_gen_min_val < pointer_pack.curr_opt->first)
+  if(curr_gen_min_val < pointer_pack.curr_opt->fitness)
   {
-    pointer_pack.curr_opt->first  = curr_gen_min_val;
-    pointer_pack.curr_opt->second = (*pointer_pack.pop)[curr_gen_min_idx];
+    pointer_pack.curr_opt->fitness  = curr_gen_min_val;
+    pointer_pack.curr_opt->tour = (*pointer_pack.pop)[curr_gen_min_idx];
   }
   // inject the global optimum from previous generations in the current generation
-  // in place of the worst chromosome of the current generation    
-  (*pointer_pack.fit_values)[curr_gen_max_idx] = pointer_pack.curr_opt->first;
-  (*pointer_pack.pop)[curr_gen_max_idx]        = pointer_pack.curr_opt->second;
+  // in place of the worst chromosome of the current generation
+  (*pointer_pack.fit_values)[curr_gen_max_idx] = pointer_pack.curr_opt->fitness;
+  (*pointer_pack.pop)[curr_gen_max_idx]        = pointer_pack.curr_opt->tour;
 }
 
 // TSP_Master
@@ -194,8 +196,8 @@ void TSP_Worker::crossover(TSP_Task & task)
   std::random_device rd;  // get a seed for the random number engine
   std::mt19937 gen(rd()); // standard mersenne_twister_engine seeded with rd()
 
-  std::discrete_distribution<> biased_coin({ 1-CROSSOVER_PROB, CROSSOVER_PROB });
-  
+  std::discrete_distribution<> biased_coin({ 1.0 - pointer_pack.config.crossover_probability, pointer_pack.config.crossover_probability });
+
   for(size_t pair_idx = task.pair_fst_idx; pair_idx < task.pair_snd_idx; ++pair_idx)
   {
     i = 2 * pair_idx;
@@ -258,7 +260,7 @@ void TSP_Worker::mutate(TSP_Task & task)
   std::random_device rd;  // get a seed for the random number engine
   std::mt19937 gen(rd()); // standard mersenne_twister_engine seeded with rd()
 
-  std::discrete_distribution<> biased_coin({ 1-MUTATION_PROB, MUTATION_PROB });
+  std::discrete_distribution<> biased_coin({ 1.0 - pointer_pack.config.mutation_probability, pointer_pack.config.mutation_probability });
 
   for(i=task.fst_idx; i < task.snd_idx; ++i)
     if(biased_coin(gen))
@@ -281,7 +283,7 @@ void TSP_Worker::evaluate_population(TSP_Task & task)
   auto sub_pop_max_val = sub_pop_min_val;
 
   for(i=task.fst_idx; i < task.snd_idx; ++i)
-  { 
+  {
     (*pointer_pack.fit_values)[i] = (*pointer_pack.fit_fun)((*pointer_pack.pop)[i]);
     // looking for new best individual
     if((*pointer_pack.fit_values)[i] < sub_pop_min_val)

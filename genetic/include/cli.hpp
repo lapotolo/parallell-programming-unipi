@@ -1,6 +1,8 @@
 #ifndef CLI_H
 #define CLI_H
 
+#include "domain.hpp"
+
 #include <charconv>
 #include <cstddef>
 #include <iostream>

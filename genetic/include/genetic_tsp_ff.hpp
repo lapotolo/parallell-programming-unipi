@@ -4,47 +4,53 @@
 #include "genetic.hpp"
 #include "ff_farm_tsp.hpp"
 
+#include <algorithm>
+#include <cstddef>
+#include <deque>
+#include <numeric>
+#include <random>
+#include <utility>
+#include <vector>
 
 
 
-class Genetic_TSP_FF : Genetic_Algorithm<std::vector<std::vector<int>>, std::vector<int>, Fitness> 
+
+class Genetic_TSP_FF : Genetic_Algorithm
 {
 public:
   // constructor. First generation is composed of random (feasible) chromosomes
-  Genetic_TSP_FF( size_t nw
-                , size_t max_its
-                , size_t pop_s
-                , size_t chromo_s
-                , std::function<Fitness(std::vector<int> const&)> f
-                )
-                : num_workers(nw)
-                , Genetic_Algorithm(max_its, pop_s, chromo_s, f)
+  Genetic_TSP_FF(std::size_t worker_count,
+                 GeneticConfig config,
+                 FitnessFunction fitness_function)
+                : Genetic_Algorithm(std::move(config), std::move(fitness_function))
+                , num_workers(worker_count)
   {
     init_population();
-    chromosomes_fitness.resize(pop_s);
-    for(size_t i = 0; i < population_size; ++i)
-      chromosomes_fitness[i] = fit_fun(population[i]);
+    fitness_.resize(config_.population_size);
+    for(size_t i = 0; i < config_.population_size; ++i)
+      fitness_[i] = fitness_function_(population_[i]);
     initialize_current_optimum();
   }
 
 
   void run() // FF is deployed in here
   {
-  if(max_epochs == 0) return;
+  if(config_.epochs == 0) return;
 
   size_t i;
-  auto shared_population = std::make_shared<std::vector<std::vector<int>>>(population);
-  auto shared_fitness = std::make_shared<std::vector<Fitness>>(chromosomes_fitness);
-  auto shared_fit_fun = std::make_shared<std::function<Fitness(std::vector<int> const&)>>(fit_fun);
-  auto shared_optimum = std::make_shared<std::pair<Fitness, std::vector<int>>>(current_optimum);
+  auto shared_population = std::make_shared<Population>(population_);
+  auto shared_fitness = std::make_shared<FitnessVector>(fitness_);
+  auto shared_fitness_function_ = std::make_shared<FitnessFunction>(fitness_function_);
+  auto shared_optimum = std::make_shared<BestSolution>(global_best_);
 
   TSP_Master master (num_workers
-                   , max_epochs
-                   , population_size
+                   , config_.epochs
+                   , config_.population_size
                    , shared_population
                    , shared_fitness
-                   , shared_fit_fun
+                   , shared_fitness_function_
                    , shared_optimum
+                   , config_
                    );
 
   // create the vector keeping pointers for farm's workers
@@ -66,28 +72,28 @@ public:
   }
   //ff::ffTime(ff::STOP_TIME);
   //std::cout << "Time: " << ff::ffTime(ff::GET_TIME) << "\n";
-  population = std::move(*shared_population);
-  chromosomes_fitness = std::move(*shared_fitness);
-  current_optimum = std::move(*shared_optimum);
+  population_ = std::move(*shared_population);
+  fitness_ = std::move(*shared_fitness);
+  global_best_ = std::move(*shared_optimum);
   return;
   }
 
-  std::pair<Fitness, std::vector<int>> get_current_optimum() { return current_optimum; }
+  BestSolution get_current_optimum() const { return global_best_; }
 
 private:
   size_t num_workers;
   size_t chunks_size; // number of chromosome that each worker have to deal with
 
   void init_population()
-  {  
-    size_t i;  
-    population.reserve(population_size);
-    for(i = 0; i < population_size; ++i)
+  {
+    size_t i;
+    population_.reserve(config_.population_size);
+    for(i = 0; i < config_.population_size; ++i)
     {
-      std::vector<int> chromosome(chromosome_size);
+      Tour chromosome(config_.chromosome_size);
       std::iota(chromosome.begin(), chromosome.end(), 0);
       std::shuffle(chromosome.begin(), chromosome.end(), std::mt19937{std::random_device{}()});
-      population.emplace_back(chromosome);
+      population_.emplace_back(chromosome);
     }
   }
 };

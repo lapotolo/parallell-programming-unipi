@@ -6,13 +6,14 @@
 #include <iostream>
 #include <numeric>
 #include <utility>
-#include <vector>
+#include "domain.hpp"
 
-inline bool is_valid_tour(const std::vector<int>& tour, std::size_t city_count)
+
+inline bool is_valid_tour(const Tour& tour, std::size_t city_count)
 {
   if(tour.size() != city_count) return false;
 
-  std::vector<int> expected(city_count);
+  Tour expected(city_count);
   std::iota(expected.begin(), expected.end(), 0);
 
   auto sorted = tour;
@@ -20,21 +21,20 @@ inline bool is_valid_tour(const std::vector<int>& tour, std::size_t city_count)
   return sorted == expected;
 }
 
-template<typename Fitness, typename FitnessFunction>
-bool validate_best_solution(const std::pair<Fitness, std::vector<int>>& solution,
-                            std::size_t city_count,
-                            FitnessFunction&& fitness_function)
+inline bool validate_best_solution(const BestSolution& solution,
+                                   std::size_t city_count,
+                                   const FitnessFunction& fitness_function)
 {
-  if(!is_valid_tour(solution.second, city_count))
+  if(!is_valid_tour(solution.tour, city_count))
   {
     std::cerr << "Invalid best tour: it is not a permutation of all cities.\n";
     return false;
   }
 
-  const auto recomputed = fitness_function(solution.second);
-  if(recomputed != solution.first)
+  const auto recomputed = fitness_function(solution.tour);
+  if(recomputed != solution.fitness)
   {
-    std::cerr << "Invalid best solution: stored fitness " << solution.first
+    std::cerr << "Invalid best solution: stored fitness " << solution.fitness
               << " differs from recomputed fitness " << recomputed << ".\n";
     return false;
   }

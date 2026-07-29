@@ -2,6 +2,12 @@
 #include "../include/tsp_graph.hpp"
 #include "../include/validation.hpp"
 #include "../include/cli.hpp"
+#include <chrono>
+#include <cstddef>
+#include <fstream>
+#include <iostream>
+#include <string>
+
 
 int main(int argc, char const *argv[])
 {
@@ -27,10 +33,10 @@ int main(int argc, char const *argv[])
   // test_graph.print_graph();
 
   // tried to overload operator() but strangely didnt work :(
-  auto fit_funct = [&](std::vector<int> const& chromo)
+  auto fit_funct = [&](const Tour& chromo)
                       {
                         Fitness tour_cost = 0;
-                        size_t k, i, j; 
+                        size_t k, i, j;
                         for(k = 0; k < chromo_size-1; ++k)
                         {
                           // since the graph yields a symmetric matrix permute indexes so that only the upper triangular part is accessible
@@ -41,13 +47,11 @@ int main(int argc, char const *argv[])
                         else { tour_cost += test_graph[chromo[chromo_size-1]][chromo[0]]; }
                         return tour_cost;
                       };
-  
+
+  const GeneticConfig config{pop_size, chromo_size, max_epochs};
+
   // get an instance of the mini framework representing genetic algorithms
-  Genetic_TSP_Sequential test( max_epochs
-                             , pop_size 
-                             , chromo_size
-                             , fit_funct
-                             );
+  Genetic_TSP_Sequential test(config, fit_funct);
 
   // SEQUENTIAL EXECUTION
   auto start = std::chrono::high_resolution_clock::now();
@@ -59,7 +63,7 @@ int main(int argc, char const *argv[])
 
   const auto best_solution = test.get_current_optimum();
   if(!validate_best_solution(best_solution, chromo_size, fit_funct)) return -1;
-  auto result = best_solution.first;
+
 
   std::ofstream out_file;
   out_file.open( "results/runs/"
