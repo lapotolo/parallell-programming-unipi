@@ -7,6 +7,7 @@
 #include <numeric>
 #include <utility>
 #include "domain.hpp"
+#include "genetic_state.hpp"
 
 
 inline bool is_valid_tour(const Tour& tour, std::size_t city_count)
@@ -40,6 +41,27 @@ inline bool validate_best_solution(const BestSolution& solution,
   }
 
   return true;
+}
+
+inline bool validate_genetic_state(const GeneticState& state,
+                                   const GeneticConfig& config,
+                                   const FitnessFunction& fitness_function)
+{
+  if(state.population.size() != config.population_size ||
+     state.fitness.size() != state.population.size())
+    return false;
+
+  for(std::size_t index = 0; index < state.population.size(); ++index)
+  {
+    if(!is_valid_tour(state.population[index], config.chromosome_size))
+      return false;
+    if(fitness_function(state.population[index]) != state.fitness[index])
+      return false;
+  }
+
+  return validate_best_solution(state.global_best,
+                                config.chromosome_size,
+                                fitness_function);
 }
 
 #endif // VALIDATION_H

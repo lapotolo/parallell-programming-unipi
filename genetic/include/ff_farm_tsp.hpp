@@ -7,6 +7,7 @@
 #include <ff/parallel_for.hpp>
 #include <ff/pipeline.hpp>
 #include <ff/farm.hpp>
+#include "genetic_state.hpp"
 #include "partition.hpp"
 #include "mutation.hpp"
 
@@ -22,10 +23,8 @@ returned by the workers.
 
 struct Gen_TSP_FF_Data_ptrs
 {
-  std::shared_ptr<Population> pop;
-  std::shared_ptr<FitnessVector> fit_values;
-  std::shared_ptr<FitnessFunction> fit_fun;
-  std::shared_ptr<BestSolution> curr_opt;
+  std::shared_ptr<GeneticState> state;
+  std::shared_ptr<FitnessFunction> fitness_function;
   GeneticConfig config;
 };
 
@@ -63,16 +62,14 @@ struct TSP_Master : ff::ff_monode_t<TSP_Task >
   TSP_Master( size_t nw
             , size_t max_its
             , size_t pop_s
-            , std::shared_ptr<Population> pop
-            , std::shared_ptr<FitnessVector> fit_values
-            , std::shared_ptr<FitnessFunction> fit_fun
-            , std::shared_ptr<BestSolution> curr_opt
+            , std::shared_ptr<GeneticState> state
+            , std::shared_ptr<FitnessFunction> fitness_function
             , GeneticConfig config
             )
             : num_workers(nw)
             , max_epochs(max_its)
             , population_size(pop_s)
-            , master_ptrs({pop, fit_values, fit_fun, curr_opt, std::move(config)})
+            , master_ptrs({std::move(state), std::move(fitness_function), std::move(config)})
             , curr_epoch(0)
             , dispatched_curr_gen(0)
             , received_curr_gen(0)
@@ -124,34 +121,34 @@ void TSP_Master::selection(std::vector<TSP_Task> & workers_results)
 
   auto curr_gen_min_idx = workers_results[0].fst_idx;
   auto curr_gen_max_idx = workers_results[0].snd_idx;
-  auto curr_gen_min_val = (*pointer_pack.fit_values)[curr_gen_min_idx];
-  auto curr_gen_max_val = (*pointer_pack.fit_values)[curr_gen_max_idx];
+  auto curr_gen_min_val = pointer_pack.state->fitness[curr_gen_min_idx];
+  auto curr_gen_max_val = pointer_pack.state->fitness[curr_gen_max_idx];
 
   for(const auto& task : workers_results)
   {
-    if((*pointer_pack.fit_values)[task.fst_idx] < curr_gen_min_val)
+    if(pointer_pack.state->fitness[task.fst_idx] < curr_gen_min_val)
     {
       curr_gen_min_idx = task.fst_idx;
-      curr_gen_min_val = (*pointer_pack.fit_values)[task.fst_idx];
+      curr_gen_min_val = pointer_pack.state->fitness[task.fst_idx];
     }
-    if((*pointer_pack.fit_values)[task.snd_idx] > curr_gen_max_val)
+    if(pointer_pack.state->fitness[task.snd_idx] > curr_gen_max_val)
     {
       curr_gen_max_idx = task.snd_idx;
-      curr_gen_max_val = (*pointer_pack.fit_values)[task.snd_idx];
+      curr_gen_max_val = pointer_pack.state->fitness[task.snd_idx];
     }
   }
 
   // if in this generation we found a new optimum
   // then we record it in the proper a class field
-  if(curr_gen_min_val < pointer_pack.curr_opt->fitness)
+  if(curr_gen_min_val < pointer_pack.state->global_best.fitness)
   {
-    pointer_pack.curr_opt->fitness  = curr_gen_min_val;
-    pointer_pack.curr_opt->tour = (*pointer_pack.pop)[curr_gen_min_idx];
+    pointer_pack.state->global_best.fitness  = curr_gen_min_val;
+    pointer_pack.state->global_best.tour = pointer_pack.state->population[curr_gen_min_idx];
   }
   // inject the global optimum from previous generations in the current generation
   // in place of the worst chromosome of the current generation
-  (*pointer_pack.fit_values)[curr_gen_max_idx] = pointer_pack.curr_opt->fitness;
-  (*pointer_pack.pop)[curr_gen_max_idx]        = pointer_pack.curr_opt->tour;
+  pointer_pack.state->fitness[curr_gen_max_idx] = pointer_pack.state->global_best.fitness;
+  pointer_pack.state->population[curr_gen_max_idx]        = pointer_pack.state->global_best.tour;
 }
 
 // TSP_Master
@@ -191,7 +188,7 @@ void TSP_Worker::crossover(TSP_Task & task)
   auto pointer_pack = task.ptrs;
 
   size_t i, j, left, right;
-  size_t chromosome_size = (pointer_pack.pop->at(0)).size();
+  size_t chromosome_size = (pointer_pack.state->population.at(0)).size();
 
   std::random_device rd;  // get a seed for the random number engine
   std::mt19937 gen(rd()); // standard mersenne_twister_engine seeded with rd()
@@ -212,15 +209,15 @@ void TSP_Worker::crossover(TSP_Task & task)
       std::deque<int> tmp_chromo, missing;
       std::vector<int> counter_1(chromosome_size, 0), counter_2(chromosome_size, 0);
 
-      for(j = left; j <= right; ++j) tmp_chromo.push_back((*pointer_pack.pop)[i][j]);
+      for(j = left; j <= right; ++j) tmp_chromo.push_back(pointer_pack.state->population[i][j]);
       // copy central part of second parent into the central part of the first parent
-      for(j = left; j <= right; ++j) (*pointer_pack.pop)[i][j] = (*pointer_pack.pop)[i+1][j];
+      for(j = left; j <= right; ++j) pointer_pack.state->population[i][j] = pointer_pack.state->population[i+1][j];
       // viceversa, copy central part of first parent into the central part of the second parent
-      for(j = left; j <= right; ++j) { (*pointer_pack.pop)[i+1][j] = tmp_chromo.front(); tmp_chromo.pop_front(); }
+      for(j = left; j <= right; ++j) { pointer_pack.state->population[i+1][j] = tmp_chromo.front(); tmp_chromo.pop_front(); }
 
       // SANITIZE PHASE
       // count number of occurrences for each symbol in both the two new offsprings
-      for(j = 0; j < chromosome_size; ++j) { counter_1[(*pointer_pack.pop)[i][j]]++; counter_2[(*pointer_pack.pop)[i+1][j]]++; }
+      for(j = 0; j < chromosome_size; ++j) { counter_1[pointer_pack.state->population[i][j]]++; counter_2[pointer_pack.state->population[i+1][j]]++; }
 
       // use a deque to keep track of missing numbers of the first offspring on the front
       // and missing numbers of the second offspring in the back
@@ -230,18 +227,18 @@ void TSP_Worker::crossover(TSP_Task & task)
         // replace doubles entries with the ones in missing
         for(j = 0; j < chromosome_size; ++j)
         {
-          if(counter_1[(*pointer_pack.pop)[i][j]] == 2)
+          if(counter_1[pointer_pack.state->population[i][j]] == 2)
           {
-            counter_1[(*pointer_pack.pop)[i][j]]--;
+            counter_1[pointer_pack.state->population[i][j]]--;
             counter_1[missing.front()]++;
-            (*pointer_pack.pop)[i][j] = missing.front();
+            pointer_pack.state->population[i][j] = missing.front();
             missing.pop_front();
           }
-          if(counter_2[(*pointer_pack.pop)[i+1][j]] == 2)
+          if(counter_2[pointer_pack.state->population[i+1][j]] == 2)
           {
-            counter_2[(*pointer_pack.pop)[i+1][j]]--;
+            counter_2[pointer_pack.state->population[i+1][j]]--;
             counter_2[missing.back()]++;
-            (*pointer_pack.pop)[i+1][j] = missing.back();
+            pointer_pack.state->population[i+1][j] = missing.back();
             missing.pop_back();
           }
         }
@@ -255,7 +252,7 @@ void TSP_Worker::mutate(TSP_Task & task)
 {
   auto pointer_pack = task.ptrs;
   size_t i;
-  size_t chromosome_size = (pointer_pack.pop->at(0)).size();
+  size_t chromosome_size = (pointer_pack.state->population.at(0)).size();
 
   std::random_device rd;  // get a seed for the random number engine
   std::mt19937 gen(rd()); // standard mersenne_twister_engine seeded with rd()
@@ -266,8 +263,8 @@ void TSP_Worker::mutate(TSP_Task & task)
     if(biased_coin(gen))
     {
       const auto positions = draw_distinct_indices(chromosome_size, gen);
-      std::swap((*pointer_pack.pop)[i][positions.first],
-                (*pointer_pack.pop)[i][positions.second]);
+      std::swap(pointer_pack.state->population[i][positions.first],
+                pointer_pack.state->population[i][positions.second]);
     }
 }
 
@@ -279,22 +276,22 @@ void TSP_Worker::evaluate_population(TSP_Task & task)
   auto sub_pop_min_idx = task.fst_idx;
   auto sub_pop_max_idx = task.fst_idx;
 
-  auto sub_pop_min_val = (*pointer_pack.fit_fun)((*pointer_pack.pop)[sub_pop_min_idx]);
+  auto sub_pop_min_val = (*pointer_pack.fitness_function)(pointer_pack.state->population[sub_pop_min_idx]);
   auto sub_pop_max_val = sub_pop_min_val;
 
   for(i=task.fst_idx; i < task.snd_idx; ++i)
   {
-    (*pointer_pack.fit_values)[i] = (*pointer_pack.fit_fun)((*pointer_pack.pop)[i]);
+    pointer_pack.state->fitness[i] = (*pointer_pack.fitness_function)(pointer_pack.state->population[i]);
     // looking for new best individual
-    if((*pointer_pack.fit_values)[i] < sub_pop_min_val)
+    if(pointer_pack.state->fitness[i] < sub_pop_min_val)
     {
-      sub_pop_min_val = (*pointer_pack.fit_values)[i];
+      sub_pop_min_val = pointer_pack.state->fitness[i];
       sub_pop_min_idx = i;
     }
     // looking for new worst individual
-    if((*pointer_pack.fit_values)[i] > sub_pop_max_val)
+    if(pointer_pack.state->fitness[i] > sub_pop_max_val)
     {
-      sub_pop_max_val = (*pointer_pack.fit_values)[i];
+      sub_pop_max_val = pointer_pack.state->fitness[i];
       sub_pop_max_idx = i;
     }
   }

@@ -55,8 +55,8 @@ public:
   Initial_Optimum_Harness()
     : Genetic_Algorithm(GeneticConfig{3, 4, 0}, tour_fitness)
   {
-    population_ = {{0, 1, 2, 3}, {0, 2, 1, 3}, {0, 3, 1, 2}};
-    fitness_ = {90, 25, 60};
+    state_.population = {{0, 1, 2, 3}, {0, 2, 1, 3}, {0, 3, 1, 2}};
+    state_.fitness = {90, 25, 60};
   }
 
   std::size_t initialize()
@@ -66,7 +66,7 @@ public:
 
   const BestSolution& optimum() const
   {
-    return global_best_;
+    return state_.global_best;
   }
 };
 
@@ -140,6 +140,18 @@ int main()
                                              Tour{0, 1, 2, 3}},
                                 4,
                                 tour_fitness));
+
+  {
+    GeneticState state{
+      Population{Tour{0, 1, 2, 3}},
+      FitnessVector{tour_fitness(Tour{0, 1, 2, 3})},
+      BestSolution{tour_fitness(Tour{0, 1, 2, 3}), Tour{0, 1, 2, 3}}
+    };
+    assert(validate_genetic_state(
+      state,
+      GeneticConfig{1, 4, 0},
+      tour_fitness));
+  }
 
   constexpr std::size_t population_size = 9;
   constexpr std::size_t epochs = 3;
