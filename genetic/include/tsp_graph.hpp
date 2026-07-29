@@ -1,6 +1,8 @@
 // TODO : create a symmetric matrix for real
 #ifndef TSP_GRAPH_H
-#define TSP_GRAPH_H  
+#define TSP_GRAPH_H
+
+#include "random_context.hpp"
 
 #include <iostream>
 #include <vector>
@@ -13,11 +15,15 @@ class TSP_Graph
 {
 public:
 
-  TSP_Graph(size_t n) : num_nodes(n) { init_tsp_graph(); };
+  explicit TSP_Graph(std::size_t node_count, RandomSeed seed = make_random_seed())
+    : num_nodes(node_count)
+  {
+    init_tsp_graph(seed);
+  }
 
   // operator [] returns a const reference to the i-th row of the wrapped graph
   const std::vector<uint16_t>& operator[](std::size_t i) const { return graph_m[i]; };
-  
+
   void print_graph()
   {
     size_t k;
@@ -35,13 +41,12 @@ public:
 protected:
   std::vector<std::vector<uint16_t>> graph_m;
   size_t num_nodes;
-  
+
   // create a completely connected graph with num_nodes nodes and i.i.d weights on edges
-  void init_tsp_graph()
-  {  
+  void init_tsp_graph(RandomSeed seed)
+  {
     size_t i, z;
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::mt19937_64 gen{seed};
     std::uniform_int_distribution<> distrib_w(1, 9);
 
     graph_m.reserve(num_nodes);

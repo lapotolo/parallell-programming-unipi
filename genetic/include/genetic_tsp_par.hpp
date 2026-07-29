@@ -4,6 +4,7 @@
 #include "domain.hpp"
 #include "executors/raw_thread_executor.hpp"
 #include "genetic_tsp.hpp"
+#include "random_context.hpp"
 
 #include <cstddef>
 #include <utility>
@@ -13,8 +14,9 @@ class Genetic_TSP_Parallel
 public:
   Genetic_TSP_Parallel(std::size_t worker_count,
                        GeneticConfig config,
-                       FitnessFunction fitness_function)
-    : algorithm_{std::move(config), std::move(fitness_function)}
+                       FitnessFunction fitness_function,
+                       RandomSeed seed = make_random_seed())
+    : algorithm_{std::move(config), std::move(fitness_function), seed}
     , executor_{worker_count}
   {
   }

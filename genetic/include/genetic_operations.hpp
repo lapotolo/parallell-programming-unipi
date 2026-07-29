@@ -4,6 +4,7 @@
 #include "domain.hpp"
 #include "genetic_state.hpp"
 #include "mutation.hpp"
+#include "random_context.hpp"
 #include "partition.hpp"
 
 #include <algorithm>
@@ -14,18 +15,6 @@
 #include <stdexcept>
 #include <utility>
 #include <vector>
-
-using RandomEngine = std::mt19937_64;
-
-inline RandomEngine make_random_engine()
-{
-  std::random_device device;
-  std::seed_seq seed{
-    device(), device(), device(), device(),
-    device(), device(), device(), device()
-  };
-  return RandomEngine{seed};
-}
 
 inline void evaluate_range(GeneticState& state,
                            const FitnessFunction& fitness_function,
@@ -105,32 +94,27 @@ inline void repair_tour(Tour& tour)
 }
 
 inline void crossover_pair_range(GeneticState& state,
-                                 const GeneticConfig& config,
                                  Work_Range pair_range,
-                                 RandomEngine& engine)
+                                 const GenerationRandomPlan& plan)
 {
-  std::bernoulli_distribution should_crossover{
-    config.crossover_probability};
-  std::uniform_int_distribution<std::size_t> left_distribution{
-    1, config.chromosome_size / 2 - 1};
-  std::uniform_int_distribution<std::size_t> right_distribution{
-    config.chromosome_size / 2, config.chromosome_size - 2};
+  if(pair_range.second > plan.crossover.size())
+    throw std::out_of_range{"crossover range exceeds the random plan"};
 
   for(std::size_t pair_index = pair_range.first;
       pair_index < pair_range.second;
       ++pair_index)
   {
-    if(!should_crossover(engine)) continue;
+    const auto& decision = plan.crossover[pair_index];
+    if(!decision.apply) continue;
 
     const auto first_index = 2 * pair_index;
     const auto second_index = first_index + 1;
-    const auto left = left_distribution(engine);
-    const auto right = right_distribution(engine);
-
     auto& first = state.population[first_index];
     auto& second = state.population[second_index];
 
-    for(std::size_t position = left; position <= right; ++position)
+    for(std::size_t position = decision.left;
+        position <= decision.right;
+        ++position)
       std::swap(first[position], second[position]);
 
     repair_tour(first);
@@ -139,20 +123,19 @@ inline void crossover_pair_range(GeneticState& state,
 }
 
 inline void mutate_range(GeneticState& state,
-                         const GeneticConfig& config,
                          Work_Range range,
-                         RandomEngine& engine)
+                         const GenerationRandomPlan& plan)
 {
-  std::bernoulli_distribution should_mutate{config.mutation_probability};
+  if(range.second > plan.mutation.size())
+    throw std::out_of_range{"mutation range exceeds the random plan"};
+
   for(std::size_t index = range.first; index < range.second; ++index)
   {
-    if(!should_mutate(engine)) continue;
+    const auto& decision = plan.mutation[index];
+    if(!decision.apply) continue;
 
-    const auto positions = draw_distinct_indices(
-      config.chromosome_size,
-      engine);
-    std::swap(state.population[index][positions.first],
-              state.population[index][positions.second]);
+    std::swap(state.population[index][decision.first],
+              state.population[index][decision.second]);
   }
 }
 

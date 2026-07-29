@@ -11,9 +11,9 @@
 
 int main(int argc, char const *argv[])
 {
-  if(argc != 1+3) // niter, pop_size, chromo_size, cross_prob, mutate_prob
+  if(argc != 4 && argc != 5) // niter, pop_size, chromo_size, cross_prob, mutate_prob
   {
-    std::cout << "Sequential Genetic TSP Usage is: <max_epochs> <population_size> <chromosome_size>\nShutting down.\n";
+    std::cout << "Sequential Genetic TSP Usage is: <max_epochs> <population_size> <chromosome_size> [seed]\nShutting down.\n";
     return -1;
   }
 
@@ -25,10 +25,16 @@ int main(int argc, char const *argv[])
      !parse_size_argument(argv[3], chromo_size) ||
      !validate_common_configuration(pop_size, chromo_size))
     return -1;
+  RandomSeed seed = make_random_seed();
+  if(argc == 5 && !parse_seed_argument(argv[4], seed))
+  {
+    std::cerr << "invalid seed.\n";
+    return -1;
+  }
 
   // create a complete weighted graph with #chromo_size numbers on node
   // edges' weights are i.i.d from the range [1,100]
-  TSP_Graph test_graph(chromo_size);
+  TSP_Graph test_graph(chromo_size, seed);
 
   // test_graph.print_graph();
 
@@ -36,7 +42,7 @@ int main(int argc, char const *argv[])
   auto fit_funct = [&](const Tour& chromo)
                       {
                         Fitness tour_cost = 0;
-                        size_t k, i, j;
+                        std::size_t k;
                         for(k = 0; k < chromo_size-1; ++k)
                         {
                           // since the graph yields a symmetric matrix permute indexes so that only the upper triangular part is accessible
@@ -51,7 +57,9 @@ int main(int argc, char const *argv[])
   const GeneticConfig config{pop_size, chromo_size, max_epochs};
 
   // get an instance of the mini framework representing genetic algorithms
-  Genetic_TSP_Sequential test(config, fit_funct);
+  Genetic_TSP_Sequential test(config, fit_funct, seed);
+
+  std::cerr << "seed=" << seed << '\n';
 
   // SEQUENTIAL EXECUTION
   auto start = std::chrono::high_resolution_clock::now();

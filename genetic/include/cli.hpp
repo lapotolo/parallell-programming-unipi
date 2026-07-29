@@ -2,6 +2,7 @@
 #define CLI_H
 
 #include "domain.hpp"
+#include "random_context.hpp"
 
 #include <charconv>
 #include <cstddef>
@@ -16,6 +17,19 @@ inline bool parse_size_argument(const char* text, std::size_t& value)
 
   const auto result = std::from_chars(input.data(), input.data() + input.size(), value);
   return result.ec == std::errc{} && result.ptr == input.data() + input.size();
+}
+
+inline bool parse_seed_argument(const char* text, RandomSeed& value)
+{
+  const std::string_view input{text};
+  if(input.empty()) return false;
+
+  const auto result = std::from_chars(
+    input.data(),
+    input.data() + input.size(),
+    value);
+  return result.ec == std::errc{} &&
+         result.ptr == input.data() + input.size();
 }
 
 inline bool validate_common_configuration(std::size_t population_size,

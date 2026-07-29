@@ -4,6 +4,7 @@
 #include "domain.hpp"
 #include "executors/sequential_executor.hpp"
 #include "genetic_tsp.hpp"
+#include "random_context.hpp"
 
 #include <utility>
 
@@ -11,8 +12,9 @@ class Genetic_TSP_Sequential
 {
 public:
   Genetic_TSP_Sequential(GeneticConfig config,
-                         FitnessFunction fitness_function)
-    : algorithm_{std::move(config), std::move(fitness_function)}
+                         FitnessFunction fitness_function,
+                         RandomSeed seed = make_random_seed())
+    : algorithm_{std::move(config), std::move(fitness_function), seed}
   {
   }
 

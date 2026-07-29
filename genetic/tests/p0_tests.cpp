@@ -160,6 +160,14 @@ int main()
   }
 
   {
+    RandomContext first{12345};
+    RandomContext second{12345};
+    const GeneticConfig config{9, 6, 3};
+    assert(first.make_generation_plan(config) ==
+           second.make_generation_plan(config));
+  }
+
+  {
     std::mt19937_64 engine{12345};
     for(std::size_t i = 0; i < 1000; ++i)
     {
@@ -196,7 +204,8 @@ int main()
     SequentialExecutor executor;
     GeneticTsp algorithm{
       GeneticConfig{population_size, 6, epochs},
-      tour_fitness};
+      tour_fitness,
+      12345};
     const auto result = algorithm.run(executor);
     assert(validate_best_solution(result, 6, tour_fitness));
     assert(validate_genetic_state(
@@ -212,7 +221,7 @@ int main()
       return tour_fitness(tour);
     };
     check_algorithm_evaluates_every_generation(
-      [&] { return Genetic_TSP_Sequential(GeneticConfig{population_size, 6, epochs}, fitness); },
+      [&] { return Genetic_TSP_Sequential(GeneticConfig{population_size, 6, epochs}, fitness, 12345); },
       population_size,
       epochs,
       calls);
@@ -243,7 +252,7 @@ int main()
       return tour_fitness(tour);
     };
     check_algorithm_evaluates_every_generation(
-      [&] { return Genetic_TSP_Parallel(4, GeneticConfig{population_size, 6, epochs}, fitness); },
+      [&] { return Genetic_TSP_Parallel(4, GeneticConfig{population_size, 6, epochs}, fitness, 12345); },
       population_size,
       epochs,
       calls);
@@ -274,7 +283,7 @@ int main()
       return tour_fitness(tour);
     };
     check_algorithm_evaluates_every_generation(
-      [&] { return Genetic_TSP_Parallel_Pool(4, GeneticConfig{population_size, 6, epochs}, fitness); },
+      [&] { return Genetic_TSP_Parallel_Pool(4, GeneticConfig{population_size, 6, epochs}, fitness, 12345); },
       population_size,
       epochs,
       calls);

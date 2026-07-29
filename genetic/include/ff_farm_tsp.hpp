@@ -90,14 +90,14 @@ struct TSP_Master : ff::ff_monode_t<TSP_Task >
 struct TSP_Worker : ff::ff_node_t<TSP_Task, TSP_Task>
 {
   TSP_Worker()
-    : random_engine{make_random_engine()}
+    : random_context{make_random_seed()}
   {
   }
 
   TSP_Task* svc(TSP_Task* tsp_task);
 
 private:
-  RandomEngine random_engine;
+  RandomContext random_context;
 };
 
 
@@ -156,14 +156,15 @@ TSP_Task* TSP_Master::svc(TSP_Task* tsp_task)
 
 TSP_Task* TSP_Worker::svc(TSP_Task* task)
 {
+  const auto random_plan =
+    random_context.make_generation_plan(task->ptrs.config);
+
   crossover_pair_range(*task->ptrs.state,
-                       task->ptrs.config,
                        {task->pair_fst_idx, task->pair_snd_idx},
-                       random_engine);
+                       random_plan);
   mutate_range(*task->ptrs.state,
-               task->ptrs.config,
                {task->fst_idx, task->snd_idx},
-               random_engine);
+               random_plan);
   evaluate_range(*task->ptrs.state,
                  *task->ptrs.fitness_function,
                  {task->fst_idx, task->snd_idx});

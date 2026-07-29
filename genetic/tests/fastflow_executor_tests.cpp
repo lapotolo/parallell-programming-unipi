@@ -26,7 +26,7 @@ Fitness tour_fitness(const Tour& tour)
 int main()
 {
   FastFlowExecutor executor{4};
-  GeneticTsp algorithm{GeneticConfig{9, 6, 3}, tour_fitness};
+  GeneticTsp algorithm{GeneticConfig{9, 6, 3}, tour_fitness, 12345};
   const auto result = algorithm.run(executor);
 
   assert(validate_best_solution(result, 6, tour_fitness));
