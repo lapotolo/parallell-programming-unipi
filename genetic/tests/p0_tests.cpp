@@ -4,6 +4,8 @@
 #include "../include/genetic_tsp_par.hpp"
 #include "../include/genetic_tsp_pool.hpp"
 #include "../include/genetic_tsp_seq.hpp"
+#include "../include/genetic_tsp.hpp"
+#include "../include/executors/sequential_executor.hpp"
 #include "../include/mutation.hpp"
 #include "../include/partition.hpp"
 #include "../include/validation.hpp"
@@ -187,6 +189,19 @@ int main()
 
   constexpr std::size_t population_size = 9;
   constexpr std::size_t epochs = 3;
+
+  {
+    SequentialExecutor executor;
+    GeneticTsp algorithm{
+      GeneticConfig{population_size, 6, epochs},
+      tour_fitness};
+    const auto result = algorithm.run(executor);
+    assert(validate_best_solution(result, 6, tour_fitness));
+    assert(validate_genetic_state(
+      algorithm.state(),
+      algorithm.config(),
+      tour_fitness));
+  }
 
   {
     std::atomic<std::size_t> calls{0};
