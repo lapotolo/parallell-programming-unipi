@@ -1,93 +1,126 @@
 #ifndef POOL_H
 #define POOL_H
 
-
 #include <condition_variable>
+#include <cstddef>
 #include <functional>
-#include <iostream>
 #include <future>
-#include <vector>
-#include <thread>
+#include <memory>
+#include <mutex>
 #include <queue>
-
-// https://www.youtube.com/watch?v=eWTGtp3HXiw
+#include <stdexcept>
+#include <thread>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 class Thread_Pool
 {
 public:
   using Task = std::function<void()>;
 
-  // CTOR
-  explicit Thread_Pool(size_t nw) { start(nw); }
-
-  // DTOR
-  ~Thread_Pool() { stop(); }
-
-  template<class T>
-  auto enqueue(T task)->std::future<decltype(task())>
+  explicit Thread_Pool(std::size_t worker_count)
   {
-    // create a pointer (move semantics) to a wrapped std::function so that we can use std::future
-    auto wrapper = std::make_shared<std::packaged_task<decltype(task()) ()>>(std::move(task));
+    if(worker_count == 0)
+      throw std::invalid_argument{"worker_count must be greater than zero"};
+    start(worker_count);
+  }
+
+  ~Thread_Pool()
+  {
+    stop();
+  }
+
+  Thread_Pool(const Thread_Pool&) = delete;
+  Thread_Pool& operator=(const Thread_Pool&) = delete;
+  Thread_Pool(Thread_Pool&&) = delete;
+  Thread_Pool& operator=(Thread_Pool&&) = delete;
+
+  template<typename Function>
+  auto enqueue(Function&& function)
+    -> std::future<std::invoke_result_t<std::decay_t<Function>&>>
+  {
+    using Callable = std::decay_t<Function>;
+    using Result = std::invoke_result_t<Callable&>;
+
+    auto packaged = std::make_shared<std::packaged_task<Result()>>(
+      std::forward<Function>(function));
+    auto future = packaged->get_future();
 
     {
-      std::unique_lock<std::mutex> lock{queue_event_mutex};
-      tasks_queue.emplace([=] {
-        (*wrapper)();
+      std::lock_guard<std::mutex> lock{mutex_};
+      if(stopping_)
+        throw std::runtime_error{"cannot enqueue a task after pool shutdown"};
+
+      tasks_.emplace([packaged] {
+        (*packaged)();
       });
     }
 
-    queue_event_var.notify_one();
-    return wrapper->get_future();
+    condition_.notify_one();
+    return future;
   }
 
 private:
-  std::vector<std::thread> my_workers;
+  std::vector<std::thread> workers_;
+  std::condition_variable condition_;
+  std::mutex mutex_;
+  bool stopping_ = false;
+  std::queue<Task> tasks_;
 
-  std::condition_variable queue_event_var;
-
-  std::mutex queue_event_mutex;
-  bool stopping = false;
-
-  std::queue<Task> tasks_queue;
-
-  void start(size_t nw)
+  void start(std::size_t worker_count)
   {
-    size_t i;
-    for (i = 0; i < nw; ++i)
+    workers_.reserve(worker_count);
+    try
     {
-      my_workers.emplace_back([=] {
-        while (true)
-        {
-          Task task;
-          {
-            std::unique_lock<std::mutex> lock{queue_event_mutex};
+      for(std::size_t worker = 0; worker < worker_count; ++worker)
+      {
+        workers_.emplace_back([this] {
+          worker_loop();
+        });
+      }
+    }
+    catch(...)
+    {
+      stop();
+      throw;
+    }
+  }
 
-            queue_event_var.wait(lock, [=] { return stopping || !tasks_queue.empty(); });
+  void worker_loop()
+  {
+    for(;;)
+    {
+      Task task;
+      {
+        std::unique_lock<std::mutex> lock{mutex_};
+        condition_.wait(lock, [this] {
+          return stopping_ || !tasks_.empty();
+        });
 
-            if (stopping && tasks_queue.empty()) break;
+        if(stopping_ && tasks_.empty()) return;
 
-            task = std::move(tasks_queue.front());
-            tasks_queue.pop();
-          }
-          task();
-        }
-      });
+        task = std::move(tasks_.front());
+        tasks_.pop();
+      }
+
+      task();
     }
   }
 
   void stop() noexcept
   {
     {
-      std::unique_lock<std::mutex> lock{queue_event_mutex};
-      stopping = true;
+      std::lock_guard<std::mutex> lock{mutex_};
+      stopping_ = true;
     }
 
-    queue_event_var.notify_all(); // every thread will start again
-
-    for (auto &thread : my_workers)
-      thread.join();
+    condition_.notify_all();
+    for(auto& worker : workers_)
+    {
+      if(worker.joinable()) worker.join();
+    }
   }
 };
-
 
 #endif // POOL_H

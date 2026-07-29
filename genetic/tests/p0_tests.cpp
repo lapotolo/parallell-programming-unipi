@@ -7,6 +7,7 @@
 #include "../include/genetic_tsp.hpp"
 #include "../include/executors/sequential_executor.hpp"
 #include "../include/executors/raw_thread_executor.hpp"
+#include "../include/executors/thread_pool_executor.hpp"
 #include "../include/mutation.hpp"
 #include "../include/partition.hpp"
 #include "../include/validation.hpp"
@@ -246,6 +247,24 @@ int main()
       population_size,
       epochs,
       calls);
+  }
+
+  {
+    ThreadPoolExecutor executor{4};
+    bool propagated = false;
+    try
+    {
+      execute_ranges(executor, 8, [](std::size_t first,
+                                     std::size_t,
+                                     WorkerId) {
+        if(first == 0) throw std::runtime_error{"pool task failure"};
+      });
+    }
+    catch(const std::runtime_error&)
+    {
+      propagated = true;
+    }
+    assert(propagated);
   }
 
   {
